@@ -1,11 +1,13 @@
-const userService = require('../../services/user.service');
-const { mainKeyboard } = require('../keyboards/main.keyboard');
+import { userService } from '../../services/user.service.js';
+import { mainKeyboard } from '../keyboards/main.keyboard.js';
 
-module.exports = async (ctx) => {
-  await userService.createIfNotExists(ctx.from.id);
+export function startCommand(bot) {
+  bot.start(async (ctx) => {
+    await userService.createIfNotExists(ctx.from.id);
 
-  await ctx.reply(
-    '👋 Добро пожаловать!\n\nУправляйте своими кошельками:',
-    mainKeyboard()
-  );
-};
+    await ctx.reply(
+      '👋 Добро пожаловать!\n\nУправляйте своими кошельками:',
+      mainKeyboard()
+    );
+  });
+}

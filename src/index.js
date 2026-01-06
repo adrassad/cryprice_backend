@@ -7,6 +7,9 @@ import { ERC20_ABI } from './blockchain/erc20.js';
 import { provider } from './blockchain/provider.js';
 import { startBot } from './bot/bot.js';
 import { ethers } from 'ethers';
+import { initDb } from './db/init.js';
+
+await initDb();
 
 
 async function bootstrap() {

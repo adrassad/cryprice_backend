@@ -1,16 +1,20 @@
-const userService = require('../../services/user.service');
+import { userService } from '../../services/user.service.js';
 
-module.exports = async (ctx) => {
-  const isPro = await userService.isPro(ctx.from.id);
+export function walletAddHandler(bot) {
+  bot.action('wallet:add', async (ctx) => {
+    await ctx.answerCbQuery(); // закрываем «часики» на кнопке
 
-  // TODO: посчитать количество кошельков пользователя
-  const walletCount = 1; // временно
+    const isPro = await userService.isPro(ctx.from.id);
 
-  if (!isPro && walletCount >= 1) {
-    return ctx.reply(
-      '❌ Бесплатно можно отслеживать только 1 кошелек.\n\nОформите Pro подписку.'
-    );
-  }
+    // TODO: посчитать количество кошельков пользователя
+    const walletCount = 1; // временно
 
-  await ctx.reply('Введите адрес кошелька:');
-};
+    if (!isPro && walletCount >= 1) {
+      return ctx.reply(
+        '❌ Бесплатно можно отслеживать только 1 кошелек.\n\nОформите Pro подписку.'
+      );
+    }
+
+    await ctx.reply('Введите адрес кошелька:');
+  });
+}
