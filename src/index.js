@@ -1,7 +1,7 @@
 import { startServer } from './api/server.js';
 import { initAave } from './blockchain/aave/aave.init.js';
 import { createOracle } from './blockchain/aave/aave.oracle.js';
-import { loadAssets } from './services/asset.service.js';
+import { loadAssets, loadAssetsToCache } from './services/asset.service.js';
 import { startPriceUpdater } from './cron/priceUpdater.js';
 import { ERC20_ABI } from './blockchain/erc20.js';
 import { provider } from './blockchain/provider.js';
@@ -21,6 +21,7 @@ async function bootstrap() {
 
     // load reserves
     const reserves = await pool.getReservesList();
+    console.log('reserves: ',reserves);
     const assets = [];
     for (const address of reserves) {
       try {
@@ -32,8 +33,9 @@ async function bootstrap() {
         assets.push({ symbol, address, decimals: Number(decimals) });
       } catch {}
     }
-
+    console.log('assets',assets);
     await loadAssets(assets);
+    await loadAssetsToCache();
     console.log(`✅ Loaded ${assets.length} assets`);
 
     startPriceUpdater(oracle);

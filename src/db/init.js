@@ -15,8 +15,8 @@ export async function initDb() {
   await query(`
     CREATE TABLE IF NOT EXISTS assets (
       id SERIAL PRIMARY KEY,
-      symbol TEXT NOT NULL UNIQUE,
-      address TEXT NOT NULL,
+      address TEXT NOT NULL UNIQUE,
+      symbol TEXT NOT NULL,
       decimals INTEGER NOT NULL
     )
   `);

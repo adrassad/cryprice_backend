@@ -81,6 +81,18 @@ addWalletScene.on('text', async (ctx) => {
         await ctx.scene.leave();
         await handleReturn(ctx);
         break;
+      
+      case 'FREE_PERIOD_EXPIRED':
+        await ctx.reply(
+          '⏳ Ваш бесплатный период закончился.\n\n' +
+          'Для добавления новых кошельков требуется Pro подписка.',
+          Markup.inlineKeyboard([
+            Markup.button.callback('⭐ Upgrade to Pro', 'PRO_UPGRADE'),
+          ])
+        );
+        await ctx.scene.leave();
+        await handleReturn(ctx);
+        break;
 
       default:
         console.error(e);

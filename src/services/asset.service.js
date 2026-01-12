@@ -1,21 +1,46 @@
-import { query } from '../db/index.js';
+import * as assetRepo from '../db/repositories/asset.repo.js';
 import { ASSETS_CACHE } from '../cache/memory.cache.js';
 
+/**
+ * Загрузка ассетов (из Aave / chain / json)
+ */
 export async function loadAssets(assets) {
-  for (const asset of assets) {
-    ASSETS_CACHE[asset.symbol.toUpperCase()] = asset;
-    // insert or ignore into DB
-    await query(
-      'INSERT INTO assets (symbol, address, decimals) VALUES ($1, $2, $3) ON CONFLICT (symbol) DO NOTHING',
-      [asset.symbol, asset.address, asset.decimals]
-    );
+  for (const a of assets) {
+    await assetRepo.upsertAsset({
+      address: a.address,
+      symbol: a.symbol,
+      decimals: a.decimals
+    });
   }
 }
 
-export function getAssetBySymbol(symbol) {
-  return ASSETS_CACHE[symbol.toUpperCase()];
+/**
+ * Получить asset по адресу
+ */
+export async function getAssetByAddress(address) {
+  return assetRepo.findByAddress(address);
 }
 
-export function getAllAssets() {
-  return Object.values(ASSETS_CACHE);
+//Получить все assets
+export async function getAllAssets() {
+  return assetRepo.getAll();
+}
+
+//Получить перечень assets по symbol
+export async function getAssetBySymbol(symbol) {
+  return assetRepo.findAllBySymbol(symbol);
+}
+
+export async function loadAssetsToCache() {
+  const assets = await assetRepo.getAll();
+
+  for (const asset of assets) {
+    ASSETS_CACHE[asset.address.toLowerCase()] = {
+      address: asset.address.toLowerCase(),
+      symbol: asset.symbol,
+      decimals: asset.decimals
+    };
+  }
+
+  console.log(`✅ Loaded ${assets.length} assets into cache`);
 }

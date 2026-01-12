@@ -3,7 +3,9 @@ export function helpCommand(bot) {
     await ctx.reply(
       `ℹ️ Доступные команды:
 /start — начать
-/help — помощь`
+/help — помощь
+/status - статус пользователя
+/positions - позиции на aave`
     );
   });
 }

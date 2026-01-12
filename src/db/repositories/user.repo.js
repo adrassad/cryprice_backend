@@ -1,3 +1,4 @@
+//src/db/repositories/user.repo.js
 import { query } from '../index.js';
 
 export async function findByTelegramId(telegramId) {
@@ -5,14 +6,24 @@ export async function findByTelegramId(telegramId) {
     `SELECT * FROM users WHERE telegram_id = $1`,
     [telegramId]
   );
-  return res.rows[0];
+  return res.rows[0] || null;
 }
 
 export async function create(telegramId) {
   await query(
-    `INSERT INTO users (telegram_id, subscription_level)
-     VALUES ($1, 'free')
-     ON CONFLICT (telegram_id) DO NOTHING`,
+    `
+    INSERT INTO users (
+      telegram_id,
+      subscription_level,
+      subscription_end
+    )
+    VALUES (
+      $1,
+      'free',
+      NOW() + INTERVAL '60 days'
+    )
+    ON CONFLICT (telegram_id) DO NOTHING
+    `,
     [telegramId]
   );
 }
