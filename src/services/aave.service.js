@@ -8,6 +8,10 @@ export async function getWalletPositions(walletAddress) {
 
   const supplies = [];
   const borrows = [];
+  const totals = [];
+
+  let totalSuppliedUsd = 0;
+  let totalBorrowedUsd = 0;
 
   for (const r of positions) {
     const asset = await getAssetByAddress(r.asset);
@@ -18,28 +22,37 @@ export async function getWalletPositions(walletAddress) {
     //console.log('asset, priceUSD: ', r.asset, priceUSD)
     if (r.aTokenBalance > 0n) {
       const amount = Number(r.aTokenBalance) / 10 ** decimals;
-
+      const usd = amount * priceUSD;
       supplies.push({
         symbol: asset.symbol,
         amount,
-        usd: amount * priceUSD,
+        usd: usd,
         collateral: r.collateral
       });
+      totalSuppliedUsd += usd;
     }
 
     if (r.variableDebt > 0n || r.stableDebt > 0n) {
       const debt =
         Number(r.variableDebt + r.stableDebt) / 10 ** decimals;
-
+      const usd = debt * priceUSD;
       borrows.push({
         symbol: asset.symbol,
         amount: debt,
-        usd: debt * priceUSD
+        usd: usd
       });
+      totalBorrowedUsd += usd;
     }
+
+    totals.push( {
+      suppliedUsd: totalSuppliedUsd,
+      borrowedUsd: totalBorrowedUsd,
+      netUsd: totalSuppliedUsd - totalBorrowedUsd
+    });
+
   }
 
   //console.log('borrows: ',borrows);
 
-  return { supplies, borrows, healthFactor};
+  return { supplies, borrows, totals, healthFactor};
 }

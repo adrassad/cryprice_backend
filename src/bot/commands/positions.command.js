@@ -40,7 +40,7 @@ export function positionsCommand(bot) {
     await ctx.answerCbQuery(); // убираем "часики" Telegram
 
     try {
-      const { supplies, borrows, healthFactor} = await getWalletPositions(wallet.address);
+      const { supplies, borrows, totals, healthFactor} = await getWalletPositions(wallet.address);
 
       if (!supplies.length && !borrows.length) {
         return ctx.reply(`💼 Кошелек: ${wallet.address}\nℹ️ Нет активных позиций в Aave.`);
@@ -48,8 +48,10 @@ export function positionsCommand(bot) {
 
       let messages = [`💼 Кошелек: ${wallet.address}`];
 
+      messages.push(`💰 Net value:: ${totals.netUsd}`);
+
       if (supplies.length) {
-        let text = '📈 Supplied:\n';
+        let text = `📈 Supplied (Total: ${totals.suppliedUsd} USD):\n`;
         for (const s of supplies) {
           text += `• ${s.symbol}: ${(s.amount ?? 0).toFixed(5)} (${(s.usd ?? 0).toFixed(2)} USD)`;
           if (s.collateral) text += ' 🔒 as collateral';
@@ -61,7 +63,7 @@ export function positionsCommand(bot) {
 
       if (borrows.length) {
         //console.log('borrows: ', borrows);
-        let text = '📉 Borrowed:\n';
+        let text = `📉 Borrowed (Total: ${totals.borrowedUsd} USD):\n`;
         for (const b of borrows) {
           text += `• ${b.symbol}: ${(b.amount ?? 0).toFixed(5)} (${(b.usd ?? 0).toFixed(2)} USD)`;
           text += '\n';
