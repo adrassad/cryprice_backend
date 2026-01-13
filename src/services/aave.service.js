@@ -2,8 +2,13 @@
 import { getUserAavePositions } from '../blockchain/aave/aave.dataProvider.js';
 import { getAssetPriceUSD } from './price.service.js';
 import { getAssetByAddress } from './asset.service.js';
+import { assertCanViewPositions } from './subscription.service.js';
 
-export async function getWalletPositions(walletAddress) {
+export async function getWalletPositions(userId, walletAddress) {
+  
+  // 🔐 ПРОВЕРКА ПОДПИСКИ
+  await assertCanViewPositions(userId);
+
   const { positions, healthFactor } = await getUserAavePositions(walletAddress);
 
   const supplies = [];

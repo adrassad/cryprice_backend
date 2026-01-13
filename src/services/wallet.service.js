@@ -2,6 +2,7 @@
 import { ethers } from 'ethers';
 import { getAssetPriceUSD } from './price.service.js';
 import { getWalletPositions } from './aave.service.js';
+import { assertCanAddWallet } from './subscription.service.js'
 
 import {
   addWallet,
@@ -11,16 +12,16 @@ import {
   walletExists,
 } from '../db/repositories/wallet.repo.js';
 
-import { isPro, getUserStatus } from './user.service.js';
-
-const FREE_WALLETS_LIMIT = 1;
-const PRO_WALLETS_LIMIT = 10;
-
 function normalizeAddress(address) {
   return address.trim().toLowerCase();
 }
 
 export async function addUserWallet(userId, address, label = null) {
+  
+  //🔐 ПРОВЕРКА ПОДПИСКИ 
+  const count = await countWalletsByUser(userId);
+  await assertCanAddWallet(userId, count);
+
   // 🔐 Проверка адреса
   if (!ethers.isAddress(address)) {
     throw new Error('INVALID_ADDRESS');
@@ -32,37 +33,6 @@ export async function addUserWallet(userId, address, label = null) {
   const exists = await walletExists(userId, normalizedAddress);
   if (exists) {
     throw new Error('WALLET_ALREADY_EXISTS');
-  }
-
-  // 👤 Статус пользователя
-  const userStatus = await getUserStatus(userId);
-  const pro = await isPro(userId);
-  const count = await countWalletsByUser(userId);
-
-  /**
-   * ❌ Free период закончился
-   */
-  if (
-    !pro &&
-    userStatus &&
-    userStatus.subscriptionEnd &&
-    userStatus.subscriptionEnd <= new Date()
-  ) {
-    throw new Error('FREE_PERIOD_EXPIRED');
-  }
-
-  /**
-   * 🆓 Лимит free
-   */
-  if (!pro && count >= FREE_WALLETS_LIMIT) {
-    throw new Error('FREE_LIMIT_REACHED');
-  }
-
-  /**
-   * ⭐ Лимит pro
-   */
-  if (pro && count >= PRO_WALLETS_LIMIT) {
-    throw new Error('PRO_LIMIT_REACHED');
   }
 
   return addWallet(userId, normalizedAddress, 'arbitrum', label);
@@ -93,7 +63,7 @@ export async function calcWalletValue(userId) {
   let total = 0;
 
   for (const w of wallets) {
-    const positions = await getWalletPositions(w.address);
+    const positions = await getWalletPositions(userId, w.address);
 
     for (const p of positions) {
       // цена токена в USD
