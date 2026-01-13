@@ -48,10 +48,10 @@ export function positionsCommand(bot) {
 
       let messages = [`💼 Кошелек: ${wallet.address}`];
 
-      messages.push(`💰 Net value:: ${totals.netUsd}`);
+      messages.push(`💰 Net value:: ${totals.netUsd.toFixed(2)}`);
 
       if (supplies.length) {
-        let text = `📈 Supplied (Total: ${totals.suppliedUsd} USD):\n`;
+        let text = `📈 Supplied (Total: ${totals.suppliedUsd.toFixed(2)} USD):\n`;
         for (const s of supplies) {
           text += `• ${s.symbol}: ${(s.amount ?? 0).toFixed(5)} (${(s.usd ?? 0).toFixed(2)} USD)`;
           if (s.collateral) text += ' 🔒 as collateral';
@@ -63,7 +63,7 @@ export function positionsCommand(bot) {
 
       if (borrows.length) {
         //console.log('borrows: ', borrows);
-        let text = `📉 Borrowed (Total: ${totals.borrowedUsd} USD):\n`;
+        let text = `📉 Borrowed (Total: ${totals.borrowedUsd.toFixed(2)} USD):\n`;
         for (const b of borrows) {
           text += `• ${b.symbol}: ${(b.amount ?? 0).toFixed(5)} (${(b.usd ?? 0).toFixed(2)} USD)`;
           text += '\n';
