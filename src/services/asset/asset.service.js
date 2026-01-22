@@ -2,8 +2,7 @@
 import { db } from "../../db/index.js";
 import { ASSETS_CACHE } from "../../cache/memory.cache.js";
 import { getAssets } from "../../blockchain/index.js";
-import { getEnabledNetworks } from '../network/network.service.js';
-
+import { getEnabledNetworks } from "../network/network.service.js";
 
 export async function syncAssets() {
   const networks = await getEnabledNetworks();
@@ -12,9 +11,9 @@ export async function syncAssets() {
     console.log(`🔗 Network: ${network.name}`);
 
     // 1️⃣ Получаем assets из blockchain
-    const assets = await getAssets(network.name, 'aave');
+    const assets = await getAssets(network.name, "aave");
 
-    // 2️⃣ Upsert в БД
+    // 2️⃣ Upsert assets в БД
     await upsertAssets(network.id, assets);
 
     // 3️⃣ Обновляем кеш ТОЛЬКО для этой сети
@@ -31,7 +30,7 @@ export async function upsertAssets(network_id, assets) {
       network_id: network_id,
       address: a.address,
       symbol: a.symbol,
-      decimals: a.decimals
+      decimals: a.decimals,
     });
   }
 }
@@ -60,4 +59,11 @@ export async function loadAssetsToCache(network_id) {
     ASSETS_CACHE[network_id][asset.address.toLowerCase()] = asset;
   }
   console.log(`✅ Loaded ${assets.length} assets into cache`);
+}
+
+export async function getAssetsByNetwork(network_id) {
+  if (!ASSETS_CACHE[network_id]) {
+    await loadAssetsToCache(network_id);
+  }
+  return ASSETS_CACHE[network_id];
 }
