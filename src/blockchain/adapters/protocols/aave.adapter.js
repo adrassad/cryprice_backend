@@ -8,6 +8,7 @@ import {
 } from "../../protocols/aave/abi/aave.abis.js";
 import { ERC20_STRING_ABI, ERC20_BYTES32_ABI } from "../../abi/index.js";
 import { getTokenMetadata } from "../../helpers/tokenMetadata.js";
+import { isAddress } from "ethers";
 
 export class AaveAdapter extends BaseProtocol {
   constructor({ provider, config }) {
@@ -58,15 +59,40 @@ export class AaveAdapter extends BaseProtocol {
   async getPrices(assets) {
     const ORACLE_DECIMALS = 8;
     const oracle = await this.getOracle();
-    const prices = [];
-    for (const address of Object.keys(assets)) {
-      const rawPrice = await oracle.getAssetPrice(address);
-      prices[address] = {
-        address,
-        price: Number(rawPrice) / 10 ** ORACLE_DECIMALS,
-      };
-    }
-    //console.log("getPrices prices", prices);
+
+    const prices = {};
+
+    // ⚡ параллельные запросы
+    await Promise.all(
+      assets.map(async (asset) => {
+        const { address, symbol } = asset;
+
+        // 🛡 защита
+        if (!address || !isAddress(address)) {
+          console.warn("Invalid address:", address);
+          return;
+        }
+
+        try {
+          const rawPrice = await oracle.getAssetPrice(address);
+
+          // иногда oracle возвращает 0 — это не ошибка
+          if (!rawPrice || rawPrice === 0n) return;
+
+          prices[address.toLowerCase()] = {
+            address,
+            symbol,
+            price: Number(rawPrice) / 10 ** ORACLE_DECIMALS,
+          };
+        } catch (e) {
+          console.warn(
+            `⚠️ Price fetch failed for ${symbol} (${address}):`,
+            e.shortMessage || e.message,
+          );
+        }
+      }),
+    );
+    // console.log("getPrices prices", prices);
     return prices;
   }
 

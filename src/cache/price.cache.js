@@ -1,35 +1,45 @@
 //src/cache/price.cache.js
 // network_id -> address -> dataPrice
-const PRICE_CACHE = {};
+import { redis } from "../redis/redis.client.js";
 
-export function getPriceCache(network_id, address) {
-  if (!PRICE_CACHE[network_id]) {
-    PRICE_CACHE[network_id] = {};
-  }
-  return PRICE_CACHE[network_id]?.[address.toLowerCase()] ?? 0;
+export async function getPriceCache(network_id, address) {
+  const key = `prices:${network_id}`;
+  const data = await redis.get(key);
+  if (!data) return 0;
+  const prices = JSON.parse(data);
+  return prices[address.toLowerCase()] ?? 0;
 }
 
-export function setPriceToCash(network_id, address, dataPrice) {
-  if (!PRICE_CACHE[network_id]) {
-    PRICE_CACHE[network_id] = {};
-  }
-  PRICE_CACHE[network_id][address.toLowerCase()] = dataPrice;
-  //console.log(`✅ Loaded price into cache`);
+export async function setPriceToCache(network_id, address, dataPrice) {
+  const key = `prices:${network_id}`;
+  const data = await redis.get(key);
+  const prices = data ? JSON.parse(data) : {};
+  prices[address.toLowerCase()] = dataPrice;
+  await redis.set(key, JSON.stringify(prices), "EX", 60 * 60); //1 час TTL
+  // console.log(
+  //   `✅ Cached ${Object.keys(prices).length} prices for ${network_id}`,
+  // );
 }
 
-export function getPricesByNetworkCash(network_id) {
-  if (!PRICE_CACHE[network_id]) {
-    PRICE_CACHE[network_id] = {};
-  }
-  return PRICE_CACHE[network_id];
+export async function getPricesByNetworkCash(network_id) {
+  const key = `prices:${network_id}`;
+  const data = await redis.get(key);
+  if (!data) return {};
+  return JSON.parse(data);
 }
 
-export function getPricesByAddress(address) {
-  const result = [];
+export async function getPricesByAddress(address) {
   const normalizedAddress = address.toLowerCase();
+  const result = [];
 
-  for (const [networkId, prices] of Object.entries(PRICE_CACHE)) {
-    if (prices[normalizedAddress] !== undefined) {
+  const keys = await redis.keys("prices:*");
+  for (const key of keys) {
+    const data = await redis.get(key);
+    if (!data) continue;
+
+    const prices = JSON.parse(data);
+    if (prices[normalizedAddress]) {
+      const networkId = key.split(":")[1];
       result.push({
         networkId,
         address: normalizedAddress,
@@ -40,22 +50,24 @@ export function getPricesByAddress(address) {
 
   return result;
 }
-export function getPricesBySymbol(symbol) {
-  const result = [];
+export async function getPricesBySymbol(symbol) {
   const normalizedSymbol = symbol.toUpperCase();
+  const result = [];
 
-  for (const [networkId, prices] of Object.entries(PRICE_CACHE)) {
+  const keys = await redis.keys("prices:*");
+  for (const key of keys) {
+    const data = await redis.get(key);
+    if (!data) continue;
+
+    const networkId = key.split(":")[1];
+    const prices = JSON.parse(data);
+
     for (const [address, dataPrice] of Object.entries(prices)) {
-      if (
-        dataPrice?.symbol &&
-        dataPrice.symbol.toUpperCase() === normalizedSymbol
-      ) {
+      if (dataPrice?.symbol?.toUpperCase() === normalizedSymbol) {
         result.push({
           networkId,
-          chain_id: dataPrice.chain_id,
-          chain_name: dataPrice.chain_name,
           address,
-          dataPrice,
+          ...dataPrice,
         });
       }
     }

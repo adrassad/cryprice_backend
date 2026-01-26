@@ -1,8 +1,8 @@
 //src/services/asset.service.js
 import { db } from "../../db/index.js";
 import {
-  getAssetsByNetworkCash,
-  setAssetsToCash,
+  getAssetsByNetworkCache,
+  setAssetsToCache,
 } from "../../cache/asset.cache.js";
 import { getAssets } from "../../blockchain/index.js";
 import { getEnabledNetworks } from "../network/network.service.js";
@@ -17,6 +17,7 @@ export async function syncAssets() {
     // 1️⃣ Получаем assets из blockchain
     const assets = await getAssets(network.name, "aave");
 
+    // console.log("syncAssets ASSETS: ", Object.values(assets).length);
     // 2️⃣ Upsert assets в БД
     await upsertAssets(network.id, assets);
 
@@ -43,37 +44,47 @@ export async function upsertAssets(network_id, assets) {
  * Получить asset по адресу
  */
 export async function getAssetByAddress(address) {
-  return db.assets.findByAddress(address);
+  return await db.assets.findByAddress(address);
 }
 
 //Получить все assets
 export async function getAllAssets() {
-  console.log("getAllAssets: ");
-  return db.assets.getAll();
+  //console.log("getAllAssets: ");
+  return await db.assets.getAll();
 }
 
 //Получить перечень assets по symbol
 export async function getAssetBySymbol(symbol) {
-  return db.assets.findAllBySymbol(symbol);
+  return await db.assets.findAllBySymbol(symbol);
 }
 
 export async function loadAssetsToCache(network_id) {
-  console.log("!!!!!!!!!!!!!!!!loadAssetsToCache");
+  //console.log("!!!!!!!!!!!!!!!!loadAssetsToCache");
   const assets = await db.assets.getByNetwork(network_id);
-  setAssetsToCash(network_id, assets);
+  await setAssetsToCache(network_id, assets);
 }
 
 export async function getAssetsByNetwork(network_id) {
-  return getAssetsByNetworkCash(network_id);
+  return await getAssetsByNetworkCache(network_id);
+}
+
+export async function getAddressAssetsByNetwork(network_id) {
+  const assets = await getAssetsByNetworkCache(network_id);
+  const assetsArray = Object.values(assets);
+
+  return Object.fromEntries(
+    assetsArray.map((a) => [a.address.toLowerCase(), a]),
+  );
 }
 
 export async function getAssetsByNetworks() {
-  const networks = Object.values(getEnabledNetworks());
+  const networks = Object.values(await getEnabledNetworks());
 
+  //console.log("getAssetsByNetworks: ", networks);
   const results = await Promise.all(
     networks.map(async (network) => ({
       name: network.name,
-      assets: await getAssetsByNetworkCash(network.id),
+      assets: await getAssetsByNetworkCache(network.id),
     })),
   );
   return Object.fromEntries(results.map(({ name, assets }) => [name, assets]));

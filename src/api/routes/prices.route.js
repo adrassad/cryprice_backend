@@ -4,25 +4,32 @@ import { getPricesBySymbol } from "../../cache/price.cache.js";
 
 const router = express.Router();
 
-router.get("/:ticker", (req, res) => {
-  const symbol = req.params.ticker.toUpperCase();
-  const asset = getAssetBySymbol(symbol);
+router.get("/:ticker", async (req, res) => {
+  try {
+    const symbol = req.params.ticker.toUpperCase();
 
-  if (!asset) return res.status(404).json({ error: "Token not supported" });
+    const asset = await getAssetBySymbol(symbol);
+    if (!asset?.length) {
+      return res.status(404).json({ error: "Token not supported" });
+    }
 
-  priceUsd = 0;
-  const dataPrice = getPricesBySymbol(symbol);
-  console.log("dataPrice: ", dataPrice);
-  if (dataPrice) {
-    priceUsd = dataPrice.priceUsd;
+    const prices = await getPricesBySymbol(symbol);
+    if (!prices.length) {
+      return res.status(404).json({ error: "Price not found" });
+    }
+
+    res.json(
+      prices.map((p) => ({
+        chain_name: p.chain_name,
+        symbol,
+        address: p.address,
+        priceUsd: p.priceUsd,
+      })),
+    );
+  } catch (e) {
+    console.error("❌ prices API failed:", e);
+    res.status(500).json({ error: "Internal error" });
   }
-
-  res.json({
-    chain_name: dataPrice.chain_name,
-    symbol,
-    address: asset.address,
-    priceUsd,
-  });
 });
 
 export default router;

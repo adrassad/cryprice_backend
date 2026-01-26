@@ -18,6 +18,22 @@ export function createPriceRepository(db) {
       return res.rows[0]?.price_usd ?? null;
     },
 
+    async getLastPriceByNetwork(network_id) {
+      const res = await db.query(
+        `
+        SELECT p.price_usd, a.address, a.symbol
+        FROM prices p
+        JOIN assets a ON p.asset_id = a.id
+        WHERE p.network_id = $1
+        ORDER BY p.timestamp DESC
+        LIMIT 1
+        `,
+        [network_id],
+      );
+
+      return res.rows[0];
+    },
+
     async savePrice(network_id, asset_id, priceUsd) {
       await db.query(
         `

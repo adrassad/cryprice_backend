@@ -1,33 +1,35 @@
 // asset.cache.js
 // address -> { address, symbol, decimals }
-const ASSETS_CACHE = {};
+import { redis } from "../redis/redis.client.js";
 
-export function getAssetCache(network_id, address) {
-  if (!ASSETS_CACHE[network_id]) {
-    ASSETS_CACHE[network_id] = {};
-  }
-  return ASSETS_CACHE[network_id]?.[address.toLowerCase()] ?? null;
+export async function getAssetCache(network_id, address) {
+  const key = `assets:${network_id}`;
+  const data = await redis.get(key);
+  if (!data) return null;
+  const assets = JSON.parse(data);
+  return assets[address.toLowerCase()] ?? null;
 }
 
-export function setAssetsToCash(network_id, assets) {
-  if (!ASSETS_CACHE[network_id]) {
-    ASSETS_CACHE[network_id] = {};
-  }
-  for (const asset of assets) {
-    ASSETS_CACHE[network_id][asset.address.toLowerCase()] = asset;
-  }
-  console.log(`✅ Loaded ${assets.length} assets into cache`);
+export async function setAssetsToCache(networkId, assets) {
+  const key = `assets:${networkId}`;
+
+  // assets должен быть объектом: address -> asset
+  await redis.set(
+    key,
+    JSON.stringify(assets),
+    "EX",
+    60 * 60, // 1 час TTL
+  );
+
+  console.log(
+    `✅ Cached ${Object.keys(assets).length} assets for ${networkId}`,
+  );
 }
 
-export function getAssetsByNetworkCash(network_id) {
-  console.warn("getAssetsByNetworkCash network_id: ", network_id);
-  if (!ASSETS_CACHE[network_id]) {
-    console.warn(
-      "getAssetsByNetworkCash is empty cache by id_network: ",
-      network_id,
-    );
-    ASSETS_CACHE[network_id] = {};
-  }
-  console.warn("getAssetsByNetworkCash ASSETS_CACHE: ", ASSETS_CACHE);
-  return ASSETS_CACHE[network_id];
+export async function getAssetsByNetworkCache(networkId) {
+  const key = `assets:${networkId}`;
+  const data = await redis.get(key);
+  if (!data) return {};
+
+  return JSON.parse(data);
 }

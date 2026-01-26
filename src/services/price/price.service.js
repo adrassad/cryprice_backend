@@ -1,7 +1,7 @@
 //src/services/price.service.js
-import { getPriceCache, setPriceToCash } from "../../cache/price.cache.js";
+import { getPriceCache, setPriceToCache } from "../../cache/price.cache.js";
 import { db } from "../../db/index.js";
-import { getAssetsByNetwork } from "../asset/asset.service.js";
+import { getAddressAssetsByNetwork } from "../asset/asset.service.js";
 import { getEnabledNetworks } from "../network/network.service.js";
 import { getPrices } from "../../blockchain/index.js";
 
@@ -9,15 +9,23 @@ export async function syncPrices() {
   const networks = await getEnabledNetworks();
   for (const network of Object.values(networks)) {
     console.log(`🔗 Network: ${network.id}`);
-    const assets = await getAssetsByNetwork(network.id);
-    //console.log("syncPrices assets", assets);
-    const prices = await getPrices(network.name, "aave", assets);
+    const assets = await getAddressAssetsByNetwork(network.id);
+    //console.log("syncPrices assets", Object.values(assets));
+    const prices = await getPrices(network.name, "aave", Object.values(assets));
+    // console.log("syncPrices prices", Object.values(prices).length);
     //console.log("syncPrices prices: ", prices);
     for (const price of Object.values(prices)) {
       //console.log("syncPrices price", price);
-      const asset = assets[price.address];
-      //console.log("syncPrices asset", asset);
-      savePriceIfChanged(network, asset, price.price);
+      const asset = assets[price.address.toLowerCase()];
+      if (!asset?.address) {
+        console.warn(
+          "⚠️ asset.address is missing price.address:",
+          price.address,
+        );
+        continue;
+      }
+      //console.log("!!!!!!!!!!!!!!!savePriceIfChanged!!!!!!!!!!!!!!!!!!!");
+      await savePriceIfChanged(network, asset, price.price);
     }
   }
 }
@@ -28,7 +36,7 @@ export async function syncPrices() {
 export async function getAssetPriceUSD(network_id, assetAddress) {
   const address = assetAddress.toLowerCase();
   // cache (address → price)
-  const dataPrice = getPriceCache(network_id, address);
+  const dataPrice = await getPriceCache(network_id, address);
   if (!dataPrice && dataPrice.priceUSD != 0) {
     return dataPrice.priceUSD;
   }
@@ -38,7 +46,7 @@ export async function getAssetPriceUSD(network_id, assetAddress) {
 
   const price = (await priceRepo.getLastPriceByAssetAddress(address)) ?? 0;
 
-  setPriceToCash(network_id, address, price);
+  await setPriceToCache(network_id, address, price);
 
   return price;
 }
@@ -48,13 +56,18 @@ export async function getAssetPriceUSD(network_id, assetAddress) {
  */
 export async function savePriceIfChanged(network, asset, priceUsd) {
   if (!asset?.address) {
-    console.warn("⚠️ asset.address is missing", asset);
+    // console.warn(
+    //   "⚠️ asset.address is missing asset, network, priceUsd:",
+    //   asset,
+    //   network,
+    //   priceUsd,
+    // );
     return;
   }
   //console.log("savePriceIfChanged asset", asset);
   const address = asset.address.toLowerCase();
   const lastPrice = 0;
-  const dataPrice = getPriceCache(network.id, address);
+  const dataPrice = await getPriceCache(network.id, address);
   if (dataPrice && dataPrice.priceUSD) {
     lastPrice = dataPrice.priceUSD;
   }
@@ -66,7 +79,7 @@ export async function savePriceIfChanged(network, asset, priceUsd) {
 
   try {
     await db.prices.savePrice(network.id, asset.id, priceUsd);
-    setPriceToCash(network.id, address, {
+    await setPriceToCache(network.id, address.toLowerCase(), {
       priceUsd: priceUsd,
       symbol: asset.symbol,
       chain_id: network.chain_id,
