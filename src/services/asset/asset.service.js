@@ -3,6 +3,7 @@ import { db } from "../../db/index.js";
 import {
   getAssetsByNetworkCache,
   setAssetsToCache,
+  getAssetCache,
 } from "../../cache/asset.cache.js";
 import { getAssets } from "../../blockchain/index.js";
 import { getEnabledNetworks } from "../network/network.service.js";
@@ -43,8 +44,21 @@ export async function upsertAssets(network_id, assets) {
 /**
  * Получить asset по адресу
  */
-export async function getAssetByAddress(address) {
-  return await db.assets.findByAddress(address);
+export async function getAssetByAddress(networkId, address) {
+  if (!address || typeof address !== "string") return null;
+
+  const normalizedAddress = address.toLowerCase();
+
+  // 1️⃣ Сначала ищем в кэше
+  const cached = await getAssetCache(networkId, normalizedAddress);
+  //console.log("cached: ", cached);
+  if (cached) return cached;
+
+  // 2️⃣ Если нет в кэше — ищем в БД
+  const asset = await db.assets.findByAddress(networkId, normalizedAddress);
+  if (!asset) return null;
+
+  return asset;
 }
 
 //Получить все assets

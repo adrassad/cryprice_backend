@@ -12,15 +12,14 @@ export function createAssetRepository(db) {
           symbol = EXCLUDED.symbol,
           decimals = EXCLUDED.decimals
         `,
-        [network_id, address.toLowerCase(), symbol, decimals]
+        [network_id, address.toLowerCase(), symbol, decimals],
       );
     },
 
-    async findByAddress(address) {
-      const res = await db.query(
-        `SELECT * FROM assets WHERE address = $1`,
-        [address.toLowerCase()]
-      );
+    async findByAddress(networkId, address) {
+      const res = await db.query(`SELECT * FROM assets WHERE address = $1`, [
+        address,
+      ]);
       return res.rows[0] || null;
     },
 
@@ -30,7 +29,9 @@ export function createAssetRepository(db) {
     },
 
     async getByNetwork(network_id) {
-      const res = await db.query(`SELECT * FROM assets WHERE network_id = $1`, [network_id]);
+      const res = await db.query(`SELECT * FROM assets WHERE network_id = $1`, [
+        network_id,
+      ]);
       return res.rows;
     },
 
@@ -51,9 +52,9 @@ export function createAssetRepository(db) {
       ORDER BY a.address;
 
         `,
-        [symbol.toUpperCase()]
+        [symbol.toUpperCase()],
       );
       return res.rows;
-    }
+    },
   };
 }

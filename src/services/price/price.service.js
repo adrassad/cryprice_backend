@@ -41,10 +41,10 @@ export async function getAssetPriceUSD(network_id, assetAddress) {
     return dataPrice.priceUSD;
   }
 
-  const asset = await assetRepo.findByAddress(address);
+  const asset = await db.assets.findByAddress(network_id, address);
   if (!asset) return 0;
 
-  const price = (await priceRepo.getLastPriceByAssetAddress(address)) ?? 0;
+  const price = (await db.prices.getLastPriceByAssetAddress(address)) ?? 0;
 
   await setPriceToCache(network_id, address, price);
 

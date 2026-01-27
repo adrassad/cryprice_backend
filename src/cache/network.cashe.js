@@ -16,7 +16,7 @@ export async function setNetworkToCashe(dataNetwork) {
     60 * 60, // 1 час TTL
   );
 
-  console.log(`✅ Cached ${network} network for ${dataNetwork.id}`);
+  //console.log(`✅ Cached ${network} network for ${dataNetwork.id}`);
 }
 
 export async function getEnabledNetworksCache() {

@@ -5,6 +5,7 @@ import {
   ADDRESSES_PROVIDER_ABI,
   AAVE_POOL_ABI,
   AAVE_ORACLE_ABI,
+  AAVE_DATA_PROVIDER_ABI,
 } from "../../protocols/aave/abi/aave.abis.js";
 import { ERC20_STRING_ABI, ERC20_BYTES32_ABI } from "../../abi/index.js";
 import { getTokenMetadata } from "../../helpers/tokenMetadata.js";
@@ -41,6 +42,18 @@ export class AaveAdapter extends BaseProtocol {
       //this.baseCurrencyDecimals = await this.oracle.BASE_CURRENCY_DECIMALS();
     }
     return this.oracle;
+  }
+
+  async getDataProvider() {
+    if (!this.dataProvider) {
+      const address = await this.addressesProvider.getPoolDataProvider();
+      this.dataProvider = new Contract(
+        address,
+        AAVE_DATA_PROVIDER_ABI,
+        this.provider,
+      );
+    }
+    return this.dataProvider;
   }
 
   async getAssets() {
@@ -97,7 +110,59 @@ export class AaveAdapter extends BaseProtocol {
   }
 
   async getUserPositions(userAddress) {
+    const dataProvider = await this.getDataProvider();
     const pool = await this.getPool();
-    return pool.getUserPositions(userAddress);
+    const reserves = await pool.getReservesList();
+
+    const positions = [];
+
+    await Promise.all(
+      reserves.map(async (asset) => {
+        try {
+          const data = await dataProvider.getUserReserveData(
+            asset,
+            userAddress,
+          );
+          const [
+            aTokenBalance,
+            stableDebt,
+            variableDebt,
+            ,
+            ,
+            ,
+            ,
+            ,
+            collateral,
+          ] = data;
+
+          // если нет позиции — пропускаем
+          if (
+            aTokenBalance === 0n &&
+            stableDebt === 0n &&
+            variableDebt === 0n
+          ) {
+            return;
+          }
+          //const dataAsset = await getTokenMetadata(asset, this.provider);
+          positions.push({
+            assetAddress: asset,
+            aTokenBalance,
+            stableDebt,
+            variableDebt,
+            collateral,
+          });
+        } catch (e) {
+          console.warn("Reserve read failed:", asset);
+        }
+      }),
+    );
+
+    // 🔹 healthFactor берём из Pool
+    const { healthFactor } = await pool.getUserAccountData(userAddress);
+
+    return {
+      positions,
+      healthFactor: Number(healthFactor) / 1e18,
+    };
   }
 }

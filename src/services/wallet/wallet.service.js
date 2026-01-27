@@ -1,23 +1,22 @@
 // src/services/wallet.service.js
-import { ethers } from 'ethers';
-import { getAssetPriceUSD } from '../price/price.service.js';
-import { getWalletPositions } from '../aave.service.js';
-import { assertCanAddWallet } from '../subscription/subscription.service.js'
-import { db } from '../../db/index.js';
+import { ethers } from "ethers";
+import { getAssetPriceUSD } from "../price/price.service.js";
+import { getWalletPositions } from "../aave.service.js";
+import { assertCanAddWallet } from "../subscription/subscription.service.js";
+import { db } from "../../db/index.js";
 
 function normalizeAddress(address) {
   return address.trim().toLowerCase();
 }
 
 export async function addUserWallet(userId, address, label = null) {
-  
-  //🔐 ПРОВЕРКА ПОДПИСКИ 
+  //🔐 ПРОВЕРКА ПОДПИСКИ
   const count = await db.wallets.countWalletsByUser(userId);
   await assertCanAddWallet(userId, count);
 
   // 🔐 Проверка адреса
   if (!ethers.isAddress(address)) {
-    throw new Error('INVALID_ADDRESS');
+    throw new Error("INVALID_ADDRESS");
   }
 
   const normalizedAddress = normalizeAddress(address);
@@ -25,17 +24,17 @@ export async function addUserWallet(userId, address, label = null) {
   // 🔁 Проверка на существование
   const exists = await db.wallets.walletExists(userId, normalizedAddress);
   if (exists) {
-    throw new Error('WALLET_ALREADY_EXISTS');
+    throw new Error("WALLET_ALREADY_EXISTS");
   }
 
-  return db.wallets.addWallet(userId, normalizedAddress, 'arbitrum', label);
+  return db.wallets.addWallet(userId, normalizedAddress, "arbitrum", label);
 }
 
 export async function removeUserWallet(userId, walletId) {
-  const removed = await removeWallet(userId, walletId);
+  const removed = await db.wallets.removeWallet(userId, walletId);
 
   if (!removed) {
-    throw new Error('WALLET_NOT_FOUND');
+    throw new Error("WALLET_NOT_FOUND");
   }
 
   return removed;
@@ -62,14 +61,16 @@ export async function calcWalletValue(userId) {
       // цена токена в USD
       const price = await getAssetPriceUSD(p.asset);
       // сумма в USD
-      const amountUsd = Number(p.aTokenBalance ?? 0n) / 1e18 * price;
+      const amountUsd = (Number(p.aTokenBalance ?? 0n) / 1e18) * price;
 
       breakdown.push({
         wallet: w.address,
         asset: p.asset,
         amount: p.aTokenBalance,
         valueUsd: amountUsd,
-        borrowedUsd: ((Number(p.variableDebt ?? 0n) + Number(p.stableDebt ?? 0n)) / 1e18) * price
+        borrowedUsd:
+          ((Number(p.variableDebt ?? 0n) + Number(p.stableDebt ?? 0n)) / 1e18) *
+          price,
       });
 
       total += amountUsd;
