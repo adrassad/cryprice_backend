@@ -24,11 +24,8 @@ export async function getWalletPositions(userId, walletAddress) {
   for (const network of Object.values(networks)) {
     // console.log("network: ", network);
     //const { positions, healthFactor } = await getAaveUserPositions(
-    const { positions, healthFactor } = await getAaveUserPositions(
-      network.name,
-      "aave",
-      walletAddress,
-    );
+    const { positions = [], healthFactor = 0 } =
+      (await getAaveUserPositions(network.name, "aave", walletAddress)) || {};
     const supplies = [];
     const borrows = [];
     let totalSuppliedUsd = 0;
