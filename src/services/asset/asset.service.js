@@ -73,6 +73,7 @@ export async function getAssetBySymbol(symbol) {
 }
 
 export async function loadAssetsToCache(network_id) {
+  if (!network_id) return;
   //console.log("!!!!!!!!!!!!!!!!loadAssetsToCache");
   const assets = await db.assets.getByNetwork(network_id);
   const assetsByAddress = {};
@@ -86,6 +87,10 @@ export async function loadAssetsToCache(network_id) {
     };
   }
   await setAssetsToCache(network_id, assetsByAddress);
+  console.log(
+    `✅ Cached assets for network ${network_id}:`,
+    Object.values(assetsByAddress).length,
+  );
 }
 
 export async function getAssetsByNetwork(network_id) {

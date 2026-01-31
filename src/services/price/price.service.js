@@ -6,10 +6,10 @@ import { getEnabledNetworks } from "../network/network.service.js";
 import { getPrices } from "../../blockchain/index.js";
 
 export async function syncPrices() {
-  await loadPricesToCache();
   const networks = await getEnabledNetworks();
   for (const network of Object.values(networks)) {
     console.log(`🔗 Network: ${network.name} `, network.id);
+    await loadPricesToCache(network.id);
     const assets = await getAddressAssetsByNetwork(network.id);
     //console.log("syncPrices assets", Object.values(assets));
     const prices = await getPrices(network.name, "aave", Object.values(assets));
@@ -34,16 +34,21 @@ export async function syncPrices() {
 }
 
 export async function loadPricesToCache(network_id) {
+  if (!network_id) return;
   //console.log("!!!!!!!!!!!!!!!!loadAssetsToCache");
   const pricesDb = await db.prices.getLastPriceByNetwork(network_id);
   const prices = {};
   for (const price of pricesDb) {
-    prices[price.address] = {
-      price_usd: price.price_usd,
+    prices[price.address.toLowerCase()] = {
+      price_usd: Number(price.price_usd),
       symbol: price.symbol,
     };
   }
   await setPriceToCache(network_id, prices);
+  console.log(
+    `✅ Cached price for network ${network_id}:`,
+    Object.values(prices).length,
+  );
 }
 /**
  * Цена 1 токена в USD по адресу
@@ -52,18 +57,11 @@ export async function getAssetPriceUSD(network_id, assetAddress) {
   const address = assetAddress.toLowerCase();
   // cache (address → price)
   const dataPrice = await getPriceCache(network_id, address);
-  if (!dataPrice && dataPrice.priceUSD != 0) {
-    return dataPrice.priceUSD;
+  //console.log("getAssetPriceUSD dataPrice:", dataPrice);
+  if (dataPrice && dataPrice.price_usd != 0) {
+    return dataPrice.price_usd;
   }
-
-  const asset = await db.assets.findByAddress(network_id, address);
-  if (!asset) return 0;
-
-  const price = (await db.prices.getLastPriceByAssetAddress(address)) ?? 0;
-
-  await setPriceToCache(network_id, address, price);
-
-  return price;
+  return 0;
 }
 
 /*

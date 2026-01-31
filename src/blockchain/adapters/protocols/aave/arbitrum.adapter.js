@@ -115,7 +115,6 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
     const dataProvider = await this.getDataProvider();
     const pool = await this.getPool();
     const reserves = await pool.getReservesList();
-
     const positions = [];
 
     await Promise.all(
@@ -125,6 +124,7 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
             asset,
             userAddress,
           );
+          //console.log("getUserPositions data: ", data);
           const [
             aTokenBalance,
             stableDebt,

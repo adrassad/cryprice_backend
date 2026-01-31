@@ -21,7 +21,7 @@ export function positionsCommand(bot) {
     );
 
     await ctx.reply(
-      "📊 Выберите кошелек для просмотра позиций:",
+      "💼 Выберите кошелек для просмотра позиций:",
       Markup.inlineKeyboard(buttons, { columns: 1 }),
     );
   });
@@ -42,47 +42,48 @@ export function positionsCommand(bot) {
     await ctx.answerCbQuery(); // убираем "часики" Telegram
 
     try {
-      let messages = [`💼 Кошелек: ${wallet.address}`];
+      //await ctx.reply(`💼 Кошелек: ${wallet.address}`);
       const networksPositions = await getWalletPositions(
         ctx.from.id,
         wallet.address,
       );
-
+      //console.log("/wallet_positions networksPositions: ", networksPositions);
       for (const [networkName, data] of Object.entries(networksPositions)) {
         const { supplies, borrows, totals, healthFactor } = data;
 
-        messages.push(`🔗 Network: ${networkName}`);
+        await ctx.reply(`🔗 Network: ${networkName}`);
         if (!supplies.length && !borrows.length) {
-          return ctx.reply(`ℹ️ Нет активных позиций в Aave.`);
-        }
+          await ctx.reply(`ℹ️ Нет активных позиций в Aave.`);
+        } else {
+          let messages = [];
+          messages.push(`💰 Aave value: ${totals.netUsd.toFixed(2)}`);
 
-        messages.push(`💰 Aave value: ${totals.netUsd.toFixed(2)}`);
-
-        if (supplies.length) {
-          let text = `📈 Supplied (Total: ${totals.suppliedUsd.toFixed(2)} USD):\n`;
-          for (const s of supplies) {
-            text += `• ${s.symbol}: ${(s.amount ?? 0).toFixed(5)} (${(s.usd ?? 0).toFixed(2)} USD)`;
-            if (s.collateral) text += " 🔒 as collateral";
-            text += "\n";
+          if (supplies.length) {
+            let text = `📈 Supplied (Total: ${totals.suppliedUsd.toFixed(2)} USD):\n`;
+            for (const s of supplies) {
+              text += `• ${s.symbol}: ${(s.amount ?? 0).toFixed(5)} (${(s.usd ?? 0).toFixed(2)} USD)`;
+              if (s.collateral) text += " 🔒 as collateral";
+              text += "\n";
+            }
+            messages.push(text);
           }
-          messages.push(text);
-        }
 
-        if (borrows.length) {
-          //console.log('borrows: ', borrows);
-          let text = `📉 Borrowed (Total: ${totals.borrowedUsd.toFixed(2)} USD):\n`;
-          for (const b of borrows) {
-            text += `• ${b.symbol}: ${(b.amount ?? 0).toFixed(5)} (${(b.usd ?? 0).toFixed(2)} USD)`;
-            text += "\n";
+          if (borrows.length) {
+            //console.log('borrows: ', borrows);
+            let text = `📉 Borrowed (Total: ${totals.borrowedUsd.toFixed(2)} USD):\n`;
+            for (const b of borrows) {
+              text += `• ${b.symbol}: ${(b.amount ?? 0).toFixed(5)} (${(b.usd ?? 0).toFixed(2)} USD)`;
+              text += "\n";
+            }
+            messages.push(text);
           }
-          messages.push(text);
-        }
 
-        messages.push(`🛡 Health Factor: ${healthFactor.toFixed(3)}`);
+          messages.push(`🛡 Health Factor: ${healthFactor.toFixed(3)}`);
 
-        // Отправляем все сообщения
-        for (const msg of messages) {
-          await ctx.reply(msg);
+          // Отправляем все сообщения
+          for (const msg of messages) {
+            await ctx.reply(msg);
+          }
         }
       }
     } catch (e) {

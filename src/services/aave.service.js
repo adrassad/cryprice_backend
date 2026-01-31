@@ -22,7 +22,7 @@ export async function getWalletPositions(userId, walletAddress) {
   const networks = await getEnabledNetworks();
 
   for (const network of Object.values(networks)) {
-    // console.log("network: ", network);
+    //console.log("network: ", network);
     //const { positions, healthFactor } = await getUserPositions(
     const { positions = [], healthFactor = 0 } =
       (await getUserPositions(network.name, "aave", walletAddress)) || {};
@@ -36,36 +36,36 @@ export async function getWalletPositions(userId, walletAddress) {
       const assetAddress = position.assetAddress.toLowerCase();
       const asset = await getAssetByAddress(network.id, assetAddress);
 
-      if (!asset) {
-        console.warn("⚠️ Asset not found:", assetAddress);
-        continue;
-      }
+      if (!asset) continue;
       const { decimals, symbol, address } = asset;
-      // console.log(
-      //   "for getAssetPriceUSD network.id, asset : ",
-      //   network.id,
-      //   address,
-      // );
-      const priceUSD = await getAssetPriceUSD(network.id, address);
+      const price_usd = await getAssetPriceUSD(network.id, address);
+
+      console.log("address: ", address);
+      console.log("addsymbolress: ", symbol);
+      console.log("decimals: ", decimals);
+      console.log("price_usd: ", price_usd);
+      console.log("position: ", position);
 
       if (position.aTokenBalance > 0n) {
         const amount = Number(position.aTokenBalance) / 10 ** decimals;
-        const usd = amount * priceUSD;
+        const usd = amount * price_usd;
         supplies.push({
-          symbol: symbol,
+          symbol,
           amount,
           usd,
-          collateral: position.collateral,
+          collateral: position.collateralEnabled,
         });
         totalSuppliedUsd += usd;
       }
 
       if (position.variableDebt > 0n || position.stableDebt > 0n) {
-        const debt =
-          Number(position.variableDebt + position.stableDebt) / 10 ** decimals;
-        const usd = debt * priceUSD;
+        const variableDebtAmount =
+          Number(position.variableDebt) / 10 ** decimals;
+        const stableDebtAmount = Number(position.stableDebt) / 10 ** decimals;
+        const debt = variableDebtAmount + stableDebtAmount;
+        const usd = debt * price_usd;
         borrows.push({
-          symbol: symbol,
+          symbol,
           amount: debt,
           usd,
         });

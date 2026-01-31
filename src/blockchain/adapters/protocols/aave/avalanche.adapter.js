@@ -1,36 +1,65 @@
-//ssrc/blockchain/adapters/protocols/aave/avalanche.adapter.js
-import { Contract, getAddress } from "ethers";
+import { Contract, getAddress, isAddress } from "ethers";
 import { AaveBaseAdapter } from "../base.protocol.js";
+
 import {
-  AAVE_POOL_ABI,
+  AAVE_POOL_V3_ABI,
   AAVE_ORACLE_ABI,
-  AAVE_DATA_PROVIDER_ABI,
+  POOL_ADDRESSES_PROVIDER_V3_ABI,
+  UI_POOL_DATA_PROVIDER_V3_ABI,
 } from "../../../protocols/aave/abi/aave.abis.js";
+
 import { getTokenMetadata } from "../../../helpers/tokenMetadata.js";
-import { isAddress } from "ethers";
 
 const STATIC = {
-  POOL: "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
-  ORACLE: "0xEBd36016B3eD09D4693Ed4251c67Bd858c3c7C9C",
-  DATA_PROVIDER: "0x65285E9dfab318f57051ab2b139ccCf232945451",
+  POOL_ADDRESSES_PROVIDER: getAddress(
+    "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
+  ),
+  ORACLE: getAddress("0xEBd36016B3eD09D4693Ed4251c67Bd858c3c7C9C"),
+  UI_POOL_DATA_PROVIDER: getAddress(
+    "0x50B4a66bF4D41e6252540eA7427D7A933Bc3c088",
+  ),
 };
 
+export const RAY = 10n ** 27n;
 export class AaveAvalancheAdapter extends AaveBaseAdapter {
   constructor({ provider, config }) {
     super({ provider, config });
 
-    this.pool = new Contract(STATIC.POOL, AAVE_POOL_ABI, provider);
+    this.provider = provider;
+
+    this.poolAddressesProvider = new Contract(
+      STATIC.POOL_ADDRESSES_PROVIDER,
+      POOL_ADDRESSES_PROVIDER_V3_ABI,
+      provider,
+    );
 
     this.oracle = new Contract(STATIC.ORACLE, AAVE_ORACLE_ABI, provider);
 
-    this.dataProvider = new Contract(
-      STATIC.DATA_PROVIDER,
-      AAVE_DATA_PROVIDER_ABI,
+    this.uiDataProvider = new Contract(
+      STATIC.UI_POOL_DATA_PROVIDER,
+      UI_POOL_DATA_PROVIDER_V3_ABI,
       provider,
     );
+
+    this.pool = null;
+  }
+
+  async ensureAvalanche() {
+    const { chainId } = await this.provider.getNetwork();
+    if (Number(chainId) !== 43114) {
+      throw new Error("Not Avalanche RPC");
+    }
+
+    if (!this.pool) {
+      const poolAddress = await this.poolAddressesProvider.getPool();
+      console.log("poolAddress: ", poolAddress);
+      this.pool = new Contract(poolAddress, AAVE_POOL_V3_ABI, this.provider);
+    }
   }
 
   async getAssets() {
+    await this.ensureAvalanche();
+
     const reserves = await this.pool.getReservesList();
 
     const assets = await Promise.all(
@@ -43,77 +72,87 @@ export class AaveAvalancheAdapter extends AaveBaseAdapter {
   }
 
   async getPrices(assets) {
-    const ORACLE_DECIMALS = 8;
+    await this.ensureAvalanche();
+
     const prices = {};
+    const ORACLE_DECIMALS = 8;
 
-    await Promise.all(
-      assets.map(async ({ address, symbol }) => {
-        if (!isAddress(address)) return;
+    for (const { address, symbol, decimals } of assets) {
+      if (!isAddress(address)) continue;
 
-        try {
-          const rawPrice = await this.oracle.getAssetPrice(address);
-          if (!rawPrice || rawPrice === 0n) return;
+      try {
+        const raw = await this.oracle.getAssetPrice(address);
+        if (!raw || raw === 0n) continue;
 
-          prices[address.toLowerCase()] = {
-            address,
-            symbol,
-            price: Number(rawPrice) / 10 ** ORACLE_DECIMALS,
-          };
-        } catch {}
-      }),
-    );
+        prices[address.toLowerCase()] = {
+          address,
+          symbol,
+          price: Number(raw) / 10 ** ORACLE_DECIMALS,
+        };
+      } catch {}
+    }
 
     return prices;
   }
 
   async getUserPositions(userAddress) {
-    const reserves = await this.pool.getReservesList();
-    const positions = [];
+    await this.ensureAvalanche();
 
-    await Promise.all(
-      reserves.map(async (asset) => {
-        try {
-          const data = await this.dataProvider.getUserReserveData(
-            asset,
-            userAddress,
-          );
+    // Получаем данные пользователя
+    const [userReserves, userEModeCategoryId] =
+      await this.uiDataProvider.getUserReservesData(
+        STATIC.POOL_ADDRESSES_PROVIDER,
+        userAddress,
+      );
 
-          const [
-            aTokenBalance,
-            stableDebt,
-            variableDebt,
-            ,
-            ,
-            ,
-            ,
-            ,
-            collateral,
-          ] = data;
-
-          if (
-            aTokenBalance === 0n &&
-            stableDebt === 0n &&
-            variableDebt === 0n
-          ) {
-            return;
-          }
-
-          positions.push({
-            assetAddress: asset,
-            aTokenBalance,
-            stableDebt,
-            variableDebt,
-            collateral,
-          });
-        } catch {}
-      }),
-    );
-
+    // Получаем healthFactor напрямую
     const { healthFactor } = await this.pool.getUserAccountData(userAddress);
+
+    // Ray = 1e27
+    const RAY = 10n ** 27n;
+
+    const positions = userReserves
+      .filter(
+        (r) =>
+          (r.scaledATokenBalance ?? 0n) > 0n ||
+          (r.scaledVariableDebt ?? 0n) > 0n ||
+          (r.principalStableDebt ?? 0n) > 0n,
+      )
+      .map((r) => {
+        // Безопасные значения
+        const scaledATokenBalance = r.scaledATokenBalance ?? 0n;
+        const scaledVariableDebt = r.scaledVariableDebt ?? 0n;
+        const principalStableDebt = r.principalStableDebt ?? 0n;
+
+        const liquidityIndex = BigInt(r.liquidityIndex ?? RAY); // если undefined, ставим 1e27
+        const variableBorrowIndex = BigInt(r.variableBorrowIndex ?? RAY); // если undefined, ставим 1e27
+
+        // Рассчитываем реальные балансы
+        const aTokenBalance =
+          scaledATokenBalance > 0n
+            ? (scaledATokenBalance * liquidityIndex) / RAY
+            : 0n;
+
+        const variableDebt =
+          scaledVariableDebt > 0n
+            ? (scaledVariableDebt * variableBorrowIndex) / RAY
+            : 0n;
+
+        const stableDebt = BigInt(principalStableDebt);
+
+        return {
+          assetAddress: r.underlyingAsset,
+          aTokenBalance,
+          variableDebt,
+          stableDebt,
+          collateralEnabled: r.usageAsCollateralEnabledOnUser ?? false,
+          tokenType: r.tokenType ?? null,
+        };
+      });
 
     return {
       positions,
-      healthFactor: Number(healthFactor) / 1e18,
+      healthFactor: Number(healthFactor ?? 0n) / 1e18,
     };
   }
 }

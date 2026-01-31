@@ -26,6 +26,7 @@ export const networksConfig = {
 
   avalanche: {
     CHAIN_ID: 43114,
+    name: "avalanche",
     NATIVE_SYMBOL: "AVAX",
     ENABLED: true, // ← просто выключили
     RPC_URL: process.env.AVALANCHE_RPC_URL,
