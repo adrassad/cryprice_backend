@@ -3,11 +3,15 @@
 import { redis } from "../redis/redis.client.js";
 
 export async function getAssetCache(network_id, address) {
-  const key = `assets:${network_id}`;
-  const data = await redis.get(key);
-  if (!data) return null;
-  const assets = JSON.parse(data);
-  return assets[address.toLowerCase()] ?? null;
+  try {
+    const key = `assets:${network_id}`;
+    const data = await redis.get(key);
+    if (!data) return null;
+    const assets = JSON.parse(data);
+    return assets[address.toLowerCase()] ?? null;
+  } catch (err) {
+    console.error("❌ Asset updater failed:", err.message);
+  }
 }
 
 export async function setAssetsToCache(networkId, assets) {
@@ -27,9 +31,13 @@ export async function setAssetsToCache(networkId, assets) {
 }
 
 export async function getAssetsByNetworkCache(networkId) {
-  const key = `assets:${networkId}`;
-  const data = await redis.get(key);
-  if (!data) return {};
+  try {
+    const key = `assets:${networkId}`;
+    const data = await redis.get(key);
+    if (!data) return {};
 
-  return JSON.parse(data);
+    return JSON.parse(data);
+  } catch (err) {
+    console.error("❌ Asset updater failed:", err.message);
+  }
 }

@@ -1,6 +1,6 @@
 import { db } from "../../db/index.js";
 import {
-  setNetworkToCashe,
+  setNetworksToCashe,
   getEnabledNetworksCache,
 } from "../../cache/network.cashe.js";
 
@@ -11,7 +11,15 @@ export async function getEnabledNetworks() {
 export async function loadNetworksToCache() {
   const networks = await db.networks.getNetworks();
   //console.log("loadNetworksToCache networks: ", networks);
+  const mapNetworks = {};
   for (const network of networks) {
-    await setNetworkToCashe(network);
+    mapNetworks[network.id] = {
+      id: network.id,
+      chain_id: network.chain_id,
+      name: network.name.toLowerCase(),
+      native_symbol: network.native_symbol,
+      enabled: network.enabled,
+    };
   }
+  await setNetworksToCashe(mapNetworks);
 }

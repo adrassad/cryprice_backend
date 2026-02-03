@@ -1,37 +1,22 @@
 import { redis } from "../redis/redis.client.js";
 
-export async function setNetworkToCashe(dataNetwork) {
-  const key = `networks:${dataNetwork.id}`;
-  const network = {
-    id: dataNetwork.id,
-    chain_id: dataNetwork.chain_id,
-    name: dataNetwork.name.toLowerCase(),
-    native_symbol: dataNetwork.native_symbol,
-    enabled: dataNetwork.enabled,
-  };
+export async function setNetworksToCashe(networks) {
+  const key = "enabled_networks";
   await redis.set(
     key,
-    JSON.stringify(network),
+    JSON.stringify(networks),
     "EX",
     60 * 60, // 1 час TTL
   );
-
-  //console.log(`✅ Cached ${network} network for ${dataNetwork.id}`);
 }
 
 export async function getEnabledNetworksCache() {
-  const keys = await redis.keys("networks:*"); // получаем все ключи сетей
-  const networks = {};
-  for (const key of keys) {
-    const data = await redis.get(key);
-    //console.log("getEnabledNetworksCache data: ", data);
-    if (data) {
-      const network = JSON.parse(data);
-      if (network.enabled) {
-        networks[network.id] = network;
-      }
-    }
+  try {
+    const data = await redis.get("enabled_networks");
+    if (!data) return {};
+    return JSON.parse(data);
+  } catch (err) {
+    console.warn("⚠️ Redis unavailable, skip enabled networks cache");
+    return []; // 🔥 graceful fallback
   }
-
-  return networks;
 }
