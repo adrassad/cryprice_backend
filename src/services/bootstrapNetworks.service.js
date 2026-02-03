@@ -14,5 +14,5 @@ export async function bootstrapNetworksService() {
     await db.networks.create(network); // вызываем репозиторий
   }
   console.log("🌐 Networks bootstrapped");
-  await loadNetworksToCache(networks);
+  await loadNetworksToCache();
 }
