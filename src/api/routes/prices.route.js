@@ -1,7 +1,7 @@
 import express from "express";
 import { getAssetBySymbol } from "../../services/asset/asset.service.js";
-import { getPricesBySymbol } from "../../cache/price.cache.js";
-import { getEnabledNetworksCache } from "../../cache/network.cashe.js";
+import { getEnabledNetworks } from "../../services/network/network.service.js";
+import { getPricesBySymbol } from "../../services/price/price.service.js";
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ router.get("/:ticker", async (req, res) => {
       return res.status(404).json({ error: "Token not supported" });
     }
 
-    const networks = await getEnabledNetworksCache();
+    const networks = await getEnabledNetworks();
 
     const prices = await getPricesBySymbol(networks, symbol);
     if (!prices.length) {

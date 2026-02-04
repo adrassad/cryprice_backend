@@ -97,3 +97,7 @@ export async function savePriceIfChanged(network, asset, priceUsd) {
     console.error(`❌ Failed to save price for ${asset.id}:`, e);
   }
 }
+
+export async function getPricesBySymbol(networks, symbol) {
+  return await getPricesBySymbolCache(networks, symbol);
+}

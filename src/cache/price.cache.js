@@ -27,7 +27,7 @@ export async function getPricesByNetworkCash(network_id) {
   return JSON.parse(data);
 }
 
-export async function getPricesBySymbol(networks, symbol) {
+export async function getPricesBySymbolCache(networks, symbol) {
   const normalizedSymbol = symbol.toUpperCase();
 
   const entries = await Promise.all(
