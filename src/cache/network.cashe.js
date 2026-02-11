@@ -3,7 +3,8 @@ import { redis } from "../redis/redis.client.js";
 const TTL = 60 * 60;
 
 export async function setNetworksToCashe(networks) {
-  if (redis.status !== "ready") return;
+  if (!redis || redis.status === "end") return null;
+
   try {
     const pipeline = redis.pipeline();
     for (const network of Object.values(networks)) {
@@ -19,7 +20,7 @@ export async function setNetworksToCashe(networks) {
 }
 
 export async function getNetworkCache(networkId) {
-  if (redis.status !== "ready") return {};
+  if (!redis || redis.status === "end") return null;
 
   try {
     const key = `enabled_networks:${networkId}`;
@@ -39,7 +40,7 @@ export async function getNetworkCache(networkId) {
 }
 
 export async function getEnabledNetworksCache() {
-  if (redis.status !== "ready") return {};
+  if (!redis || redis.status === "end") return null;
 
   try {
     const ids = await redis.smembers("enabled_networks:list");

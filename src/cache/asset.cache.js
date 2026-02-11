@@ -12,7 +12,8 @@ function isAddress(value) {
 }
 
 export async function getAssetCache(networkId, addressOrSymbol) {
-  if (redis.status !== "ready") return null;
+  if (!redis || redis.status === "end") return null;
+
   if (!addressOrSymbol) return null;
 
   const value = addressOrSymbol.toLowerCase();
@@ -35,7 +36,7 @@ export async function getAssetCache(networkId, addressOrSymbol) {
 }
 
 export async function setAssetsToCache(networkId, assets) {
-  if (redis.status !== "ready") return;
+  if (!redis || redis.status === "end") return null;
 
   const key = `assets:${networkId}`;
 
@@ -69,7 +70,7 @@ export async function setAssetsToCache(networkId, assets) {
 }
 
 export async function getAssetsByNetworkCache(networkId) {
-  if (redis.status !== "ready") return {};
+  if (!redis || redis.status === "end") return null;
 
   try {
     const key = `assets:${networkId}`;
@@ -93,7 +94,7 @@ export async function getAssetsByNetworkCache(networkId) {
 }
 
 export async function getAssetBySymbolCache(networkId, symbol) {
-  if (redis.status !== "ready") return null;
+  if (!redis || redis.status === "end") return null;
 
   try {
     const raw = await redis.hget(

@@ -7,11 +7,25 @@ export const redis = new Redis({
   lazyConnect: true, // 🔥 важно
   maxRetriesPerRequest: 1, // не блокировать event loop
   enableOfflineQueue: true,
+  retryStrategy(times) {
+    return Math.min(times * 100, 2000);
+  },
+  reconnectOnError(err) {
+    const targetError = "READONLY";
+    if (err.message.includes(targetError)) {
+      return true;
+    }
+    return false;
+  },
 });
 
 // Подписка на события
 redis.on("connect", () => {
   console.log("🟢 Redis connected");
+});
+
+redis.on("reconnecting", () => {
+  console.warn("🟡 Redis reconnecting...");
 });
 
 redis.on("error", (err) => {
