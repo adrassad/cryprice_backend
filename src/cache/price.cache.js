@@ -3,20 +3,24 @@ import { redis } from "../redis/redis.client.js";
 
 const PRICE_TTL = 60 * 60; // 1 час
 
-function priceKey(networkId, address) {
-  return `price:${networkId}:${address.toLowerCase()}`;
+function pricesKey(networkId) {
+  return `prices:${networkId}`;
+}
+
+function pricesBySymbolKey(networkId) {
+  return `prices:${networkId}:bySymbol`;
 }
 
 /**
  * Получить цену по сети и адресу
  */
 export async function getPriceCache(networkId, address) {
-  if (!redis || redis.status === "end") return null;
+  if (!redis || redis.status === "end") return 0;
 
   try {
-    const data = await redis.get(priceKey(networkId, address));
-    if (!data) return 0;
-    return JSON.parse(data);
+    const raw = await redis.hget(pricesKey(networkId), address.toLowerCase());
+
+    return raw ? JSON.parse(raw) : 0;
   } catch (err) {
     console.warn("⚠️ Redis getPriceCache failed:", err.message);
     return 0;
@@ -27,21 +31,35 @@ export async function getPriceCache(networkId, address) {
  * Сохранить цены (address -> dataPrice)
  */
 export async function setPriceToCache(networkId, prices) {
-  if (!redis || redis.status === "end") return null;
+  if (!redis || redis.status === "end") return;
 
   try {
-    const pipeline = redis.pipeline();
+    const priceEntries = {};
+    const symbolEntries = {};
 
     for (const [address, price] of Object.entries(prices)) {
-      pipeline.set(
-        priceKey(networkId, address),
-        JSON.stringify(price),
-        "EX",
-        PRICE_TTL,
-      );
+      const normalizedAddress = address.toLowerCase();
+      const normalizedSymbol = price?.symbol?.toUpperCase();
+
+      priceEntries[normalizedAddress] = JSON.stringify(price);
+
+      if (normalizedSymbol) {
+        symbolEntries[normalizedSymbol] = JSON.stringify({
+          address: normalizedAddress,
+          ...price,
+        });
+      }
     }
 
-    await pipeline.exec();
+    if (Object.keys(priceEntries).length) {
+      await redis.hset(pricesKey(networkId), priceEntries);
+      await redis.expire(pricesKey(networkId), PRICE_TTL);
+    }
+
+    if (Object.keys(symbolEntries).length) {
+      await redis.hset(pricesBySymbolKey(networkId), symbolEntries);
+      await redis.expire(pricesBySymbolKey(networkId), PRICE_TTL);
+    }
 
     console.log(
       `✅ Cached ${Object.keys(prices).length} prices for ${networkId}`,
@@ -53,30 +71,17 @@ export async function setPriceToCache(networkId, prices) {
 
 /**
  * Получить все цены по сети
- * ⚠️ Тяжёлая операция — использовать редко (admin / cron)
  */
 export async function getPricesByNetworkCache(networkId) {
-  if (!redis || redis.status === "end") return null;
+  if (!redis || redis.status === "end") return {};
 
   try {
-    const result = {};
-    const stream = redis.scanStream({
-      match: `price:${networkId}:*`,
-      count: 100, // batch size
-    });
+    const data = await redis.hgetall(pricesKey(networkId));
+    if (!data || !Object.keys(data).length) return {};
 
-    for await (const keys of stream) {
-      if (!keys.length) continue;
-      const values = await redis.mget(keys);
-      keys.forEach((key, i) => {
-        if (values[i]) {
-          const address = key.split(":")[2];
-          result[address] = JSON.parse(values[i]);
-        }
-      });
-    }
-
-    return result;
+    return Object.fromEntries(
+      Object.entries(data).map(([address, raw]) => [address, JSON.parse(raw)]),
+    );
   } catch (err) {
     console.warn("⚠️ Redis getPricesByNetworkCache failed:", err.message);
     return {};
@@ -84,52 +89,40 @@ export async function getPricesByNetworkCache(networkId) {
 }
 
 /**
- * Найти цены по символу (через Redis)
+ * Найти цену по символу в конкретной сети
+ */
+export async function getPriceBySymbolCache(networkId, symbol) {
+  if (!redis || redis.status === "end") return null;
+
+  try {
+    const raw = await redis.hget(
+      pricesBySymbolKey(networkId),
+      symbol.toUpperCase(),
+    );
+
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    console.warn("⚠️ Redis getPriceBySymbolCache failed:", err.message);
+    return null;
+  }
+}
+
+/**
+ * Найти цены по символу во всех сетях
  */
 export async function getPricesBySymbolCache(networks, symbol) {
   if (!redis || redis.status === "end") return [];
 
-  const normalizedSymbol = symbol.toUpperCase();
   const results = [];
+  const normalizedSymbol = symbol.toUpperCase();
 
   for (const networkId of Object.keys(networks)) {
-    try {
-      const stream = redis.scanStream({
-        match: `price:${networkId}:*`,
-        count: 100,
+    const price = await getPriceBySymbolCache(networkId, normalizedSymbol);
+    if (price) {
+      results.push({
+        networkId,
+        ...price,
       });
-
-      for await (const keys of stream) {
-        if (!keys.length) continue;
-
-        const values = await redis.mget(keys);
-
-        keys.forEach((key, i) => {
-          if (!values[i]) return;
-
-          try {
-            const price = JSON.parse(values[i]);
-            if (
-              price?.symbol &&
-              price.symbol.toUpperCase() === normalizedSymbol
-            ) {
-              results.push({
-                networkId,
-                address: key.split(":")[2],
-                ...price,
-              });
-            }
-          } catch {
-            // Игнорируем некорректные JSON
-          }
-        });
-      }
-    } catch (err) {
-      console.warn(
-        `⚠️ Redis scan failed for network ${networkId}:`,
-        err.message,
-      );
-      continue;
     }
   }
 

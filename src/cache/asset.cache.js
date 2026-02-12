@@ -1,65 +1,82 @@
-// asset.cache.js
-// address -> { address, symbol, decimals }
+// src/cache/asset.cache.js
 import { redis } from "../redis/redis.client.js";
 
 const TTL = 60 * 60; // 1 час
 
+function assetsKey(networkId) {
+  return `assets:${networkId}`;
+}
+
+function assetsBySymbolKey(networkId) {
+  return `assets:${networkId}:bySymbol`;
+}
+
 function isAddress(value) {
-  // простая эвристика под EVM
   return (
     typeof value === "string" && value.startsWith("0x") && value.length === 42
   );
 }
 
+/**
+ * Получить asset по адресу или символу
+ */
 export async function getAssetCache(networkId, addressOrSymbol) {
   if (!redis || redis.status === "end") return null;
-
   if (!addressOrSymbol) return null;
 
-  const value = addressOrSymbol.toLowerCase();
+  const value = addressOrSymbol.trim().toLowerCase();
 
   try {
-    // 1️⃣ пробуем как address
+    // 1️⃣ если address
     if (isAddress(value)) {
-      const raw = await redis.hget(`assets:${networkId}`, value);
+      const raw = await redis.hget(assetsKey(networkId), value.toLowerCase());
+
       if (raw) return JSON.parse(raw);
     }
 
-    // 2️⃣ fallback: пробуем как symbol
-    const rawBySymbol = await redis.hget(`assets:${networkId}:bySymbol`, value);
+    // 2️⃣ иначе пробуем symbol
+    const rawBySymbol = await redis.hget(
+      assetsBySymbolKey(networkId),
+      value.toUpperCase(),
+    );
 
     return rawBySymbol ? JSON.parse(rawBySymbol) : null;
   } catch (err) {
-    console.error("❌ getAssetCache failed:", err.message);
+    console.warn("⚠️ Redis getAssetCache failed:", err.message);
     return null;
   }
 }
 
+/**
+ * Сохранить assets (address -> asset)
+ */
 export async function setAssetsToCache(networkId, assets) {
-  if (!redis || redis.status === "end") return null;
-
-  const key = `assets:${networkId}`;
+  if (!redis || redis.status === "end") return;
 
   try {
-    const pipeline = redis.pipeline();
+    const addressEntries = {};
+    const symbolEntries = {};
 
-    for (const address in assets) {
-      const asset = assets[address];
+    for (const [address, asset] of Object.entries(assets)) {
+      const normalizedAddress = address.toLowerCase();
+      const normalizedSymbol = asset?.symbol?.toUpperCase();
 
-      pipeline.hset(key, address.toLowerCase(), JSON.stringify(asset));
+      addressEntries[normalizedAddress] = JSON.stringify(asset);
 
-      // optional: поиск по symbol
-      pipeline.hset(
-        `${key}:bySymbol`,
-        asset.symbol.toLowerCase(),
-        JSON.stringify(asset),
-      );
+      if (normalizedSymbol) {
+        symbolEntries[normalizedSymbol] = JSON.stringify(asset);
+      }
     }
 
-    pipeline.expire(key, TTL);
-    pipeline.expire(`${key}:bySymbol`, TTL);
+    if (Object.keys(addressEntries).length) {
+      await redis.hset(assetsKey(networkId), addressEntries);
+      await redis.expire(assetsKey(networkId), TTL);
+    }
 
-    await pipeline.exec();
+    if (Object.keys(symbolEntries).length) {
+      await redis.hset(assetsBySymbolKey(networkId), symbolEntries);
+      await redis.expire(assetsBySymbolKey(networkId), TTL);
+    }
 
     console.log(
       `✅ Cached ${Object.keys(assets).length} assets for ${networkId}`,
@@ -69,40 +86,41 @@ export async function setAssetsToCache(networkId, assets) {
   }
 }
 
+/**
+ * Получить все assets по сети
+ */
 export async function getAssetsByNetworkCache(networkId) {
-  if (!redis || redis.status === "end") return null;
+  if (!redis || redis.status === "end") return {};
 
   try {
-    const key = `assets:${networkId}`;
-    const data = await redis.hgetall(key);
+    const data = await redis.hgetall(assetsKey(networkId));
+    if (!data || !Object.keys(data).length) return {};
 
-    if (!data || Object.keys(data).length === 0) {
-      return {};
-    }
-
-    const result = {};
-
-    for (const address in data) {
-      result[address] = JSON.parse(data[address]);
-    }
-
-    return result; // ✅ map: address -> asset
+    return Object.fromEntries(
+      Object.entries(data).map(([address, raw]) => [address, JSON.parse(raw)]),
+    );
   } catch (err) {
-    console.error("❌ getAssetsByNetworkCache failed:", err.message);
+    console.warn("⚠️ Redis getAssetsByNetworkCache failed:", err.message);
     return {};
   }
 }
 
+/**
+ * Получить asset по symbol
+ */
 export async function getAssetBySymbolCache(networkId, symbol) {
   if (!redis || redis.status === "end") return null;
+  if (!symbol) return null;
 
   try {
     const raw = await redis.hget(
-      `assets:${networkId}:bySymbol`,
-      symbol.toLowerCase(),
+      assetsBySymbolKey(networkId),
+      symbol.toUpperCase(),
     );
+
     return raw ? JSON.parse(raw) : null;
-  } catch {
+  } catch (err) {
+    console.warn("⚠️ Redis getAssetBySymbolCache failed:", err.message);
     return null;
   }
 }

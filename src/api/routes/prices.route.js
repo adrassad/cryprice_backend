@@ -16,7 +16,7 @@ router.get("/:ticker", async (req, res) => {
       if (!asset) {
         continue;
       }
-
+      // console.log("asset: ", asset);
       const price = await getAssetPrice(network.id, asset.address);
       if (!price) {
         return res.status(404).json({ error: "Price not found" });

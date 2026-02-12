@@ -24,15 +24,8 @@ export async function getNetworkCache(networkId) {
 
   try {
     const key = `enabled_networks:${networkId}`;
-    const data = await redis.hgetall(key);
-
-    if (!data || Object.keys(data).length === 0) {
-      return {};
-    }
-
-    console.log("getNetworkCache data: ", data);
-    if (!data) return {};
-    return JSON.parse(data);
+    const raw = await redis.get(key);
+    return raw ? JSON.parse(raw) : {};
   } catch (err) {
     console.error("❌ getAssetsByNetworkCache failed:", err.message);
     return {};
