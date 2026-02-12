@@ -2,7 +2,6 @@
 import { JsonRpcProvider } from "ethers";
 
 export function createAvalancheNetwork(config) {
-  //console.log("createArbitrumNetwork: config", config);
   return {
     name: "avalanche",
     chainId: config.CHAIN_ID,

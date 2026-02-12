@@ -9,7 +9,6 @@ export async function bootstrapNetworksService() {
     native_symbol: cfg.NATIVE_SYMBOL,
     enabled: cfg.ENABLED,
   }));
-  //console.log("networks: ", networks);
   for (const network of networks) {
     await db.networks.create(network); // вызываем репозиторий
   }

@@ -2,7 +2,6 @@
 import { JsonRpcProvider } from "ethers";
 
 export function createEthereumNetwork(config) {
-  //console.log('createArbitrumNetwork: config', config);
   return {
     name: "etherium",
     chainId: config.CHAIN_ID,

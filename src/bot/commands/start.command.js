@@ -1,12 +1,16 @@
-import { createIfNotExists } from '../../services/user/user.service.js';
-import { mainKeyboard } from '../keyboards/main.keyboard.js';
+import { createIfNotExists } from "../../services/user/user.service.js";
+import { mainKeyboard } from "../keyboards/main.keyboard.js";
 
 export function startCommand(bot) {
   bot.telegram.setMyCommands([
-    { command: 'start', description: '🚀 Перезапустить бота' },
-    { command: 'status', description: '💳 Статус подписки' },
+    { command: "start", description: "🚀 Перезапустить бота" },
+    { command: "status", description: "💳 Статус подписки" },
     //{ command: 'help', description: '❓ Показать все команды' },
-    { command: 'positions', description: '📊 Показать мои позиции' },    
+    { command: "positions", description: "📊 Показать мои позиции" },
+    {
+      command: "healthfactor",
+      description: "🛡 Показать healthfacror на aave",
+    },
   ]);
   bot.start(async (ctx) => {
     if (ctx.scene?.current) {
@@ -15,7 +19,7 @@ export function startCommand(bot) {
     await createIfNotExists(ctx.from.id);
 
     await ctx.reply(
-    `👋 Добро пожаловать!\n\n
+      `👋 Добро пожаловать!\n\n
       🤖 Aave Health Monitor
 
 Я отслеживаю health factor ваших кошельков в Aave (Arbitrum)
@@ -25,7 +29,7 @@ export function startCommand(bot) {
 🔔 Уведомления 24/7
 💼 Поддержка нескольких кошельков
 ⚡ Pro-подписка для расширенных возможностей`,
-      mainKeyboard()
+      mainKeyboard(),
     );
   });
 }

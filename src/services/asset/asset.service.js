@@ -11,7 +11,6 @@ import { getEnabledNetworks } from "../network/network.service.js";
 export async function syncAssets() {
   console.log("⏱ Asset sync started");
   const networks = await getEnabledNetworks();
-  //console.log("syncAssets networks: ", networks);
   for (const network of Object.values(networks)) {
     console.log(`🔗 Network: ${network.name} `, network.id);
 
@@ -51,7 +50,6 @@ export async function getAssetByAddress(networkId, address) {
 
   // 1️⃣ Сначала ищем в кэше
   const cached = await getAssetCache(networkId, normalizedAddress);
-  //console.log("cached: ", cached);
   if (cached) return cached;
 
   // 2️⃣ Если нет в кэше — ищем в БД
@@ -63,7 +61,6 @@ export async function getAssetByAddress(networkId, address) {
 
 //Получить все assets
 export async function getAllAssets() {
-  //console.log("getAllAssets: ");
   return await db.assets.getAll();
 }
 
@@ -73,7 +70,6 @@ export async function getAsset(networkId, addressOrSymbol) {
 
 export async function loadAssetsToCache(network_id) {
   if (!network_id) return;
-  //console.log("!!!!!!!!!!!!!!!!loadAssetsToCache");
   const assets = await db.assets.getByNetwork(network_id);
   const assetsByAddress = {};
   for (const asset of assets) {
@@ -108,7 +104,6 @@ export async function getAddressAssetsByNetwork(network_id) {
 export async function getAssetsByNetworks() {
   const networks = Object.values(await getEnabledNetworks());
 
-  //console.log("getAssetsByNetworks: ", networks);
   const results = await Promise.all(
     networks.map(async (network) => ({
       name: network.name,

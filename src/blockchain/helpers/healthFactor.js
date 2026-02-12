@@ -1,3 +1,4 @@
+//src/blockchain/helpers/healthFactor.js
 import { formatUnits, MaxUint256 } from "ethers";
 
 /**
@@ -7,44 +8,34 @@ import { formatUnits, MaxUint256 } from "ethers";
  * @param {number} decimals (по умолчанию 18 для Aave)
  * @returns {string} готовое значение для UI
  */
-export function formatHealthFactor(rawHealthFactor, decimals = 18) {
+export function parseHealthFactor(rawHealthFactor, decimals = 18) {
   try {
     if (rawHealthFactor === null || rawHealthFactor === undefined) {
-      return "0.0000";
+      return null;
     }
 
-    // Если это MaxUint256 → бесконечный HF
-    if (rawHealthFactor === MaxUint256) {
-      return "∞";
-    }
-
-    // ethers v6 возвращает bigint
+    // ethers v6 → bigint
     if (typeof rawHealthFactor === "bigint") {
-      // защита от MaxUint256 через bigint сравнение
       if (rawHealthFactor === MaxUint256) {
-        return "∞";
+        return Infinity;
       }
 
       const formatted = formatUnits(rawHealthFactor, decimals);
-      return Number(formatted).toFixed(4);
+      return Number(formatted);
     }
 
-    // Если пришла строка
     if (typeof rawHealthFactor === "string") {
       const num = Number(rawHealthFactor);
-      if (!Number.isFinite(num)) return "∞";
-      return num.toFixed(4);
+      return Number.isFinite(num) ? num : Infinity;
     }
 
-    // Если number
     if (typeof rawHealthFactor === "number") {
-      if (!Number.isFinite(rawHealthFactor)) return "∞";
-      return rawHealthFactor.toFixed(4);
+      return Number.isFinite(rawHealthFactor) ? rawHealthFactor : Infinity;
     }
 
-    return "0.0000";
+    return null;
   } catch (e) {
-    console.warn("⚠️ formatHealthFactor failed:", e.message);
-    return "0.0000";
+    console.warn("⚠️ parseHealthFactor failed:", e.message);
+    return null;
   }
 }

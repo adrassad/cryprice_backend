@@ -4,8 +4,6 @@ import { createProtocolAdapter } from "./adapters/index.js";
 function resolveProtocol(networkName, protocolName) {
   const network = networksRegistry[networkName];
 
-  //console.log("network: ", network);
-
   if (!network) {
     throw new Error(`Network ${networkName} not supported`);
   }
@@ -43,4 +41,13 @@ export async function getUserPositions(
 ) {
   const protocol = resolveProtocol(networkName, protocolName);
   return protocol.getUserPositions(walletAddress);
+}
+
+export async function getUserHealthFactor(
+  networkName,
+  protocolName,
+  walletAddress,
+) {
+  const protocol = resolveProtocol(networkName, protocolName);
+  return protocol.getUserHealthFactor(walletAddress);
 }

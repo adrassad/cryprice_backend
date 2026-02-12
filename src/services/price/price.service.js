@@ -15,12 +15,8 @@ export async function syncPrices() {
     console.log(`🔗 Network: ${network.name} `, network.id);
     await loadPricesToCache(network.id);
     const assets = await getAddressAssetsByNetwork(network.id);
-    //console.log("syncPrices assets", Object.values(assets));
     const prices = await getPrices(network.name, "aave", Object.values(assets));
-    // console.log("syncPrices prices", Object.values(prices).length);
-    //console.log("syncPrices prices: ", prices);
     for (const price of Object.values(prices)) {
-      //console.log("syncPrices price", price);
       const asset = assets[price.address.toLowerCase()];
       if (!asset?.address) {
         console.warn(
@@ -29,8 +25,6 @@ export async function syncPrices() {
         );
         continue;
       }
-      //console.log("!!!!!!!!!!!!!!!savePriceIfChanged!!!!!!!!!!!!!!!!!!!");
-      //console.log("asset: ", asset);
       await savePriceIfChanged(network, asset, price.price);
     }
     await loadPricesToCache(network.id);
@@ -39,7 +33,6 @@ export async function syncPrices() {
 
 export async function loadPricesToCache(network_id) {
   if (!network_id) return;
-  //console.log("!!!!!!!!!!!!!!!!loadAssetsToCache");
   const pricesDb = await db.prices.getLastPriceByNetwork(network_id);
   const prices = {};
   for (const price of pricesDb) {
@@ -62,7 +55,6 @@ export async function getAssetPriceUSD(network_id, assetAddress) {
   const address = assetAddress.toLowerCase();
   // cache (address → price)
   const dataPrice = await getPriceCache(network_id, address);
-  //console.log("getAssetPriceUSD dataPrice:", dataPrice);
   if (dataPrice && dataPrice.price_usd != 0) {
     return dataPrice.price_usd;
   }
@@ -88,7 +80,6 @@ export async function savePriceIfChanged(network, asset, priceUsd) {
     // );
     return;
   }
-  //console.log("savePriceIfChanged asset", asset);
   const address = asset.address.toLowerCase();
   const lastPrice = 0;
   const dataPrice = await getPriceCache(network.id, address);

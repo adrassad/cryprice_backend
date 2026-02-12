@@ -1,5 +1,5 @@
 // src/services/aave.service.js
-import { getUserPositions } from "../blockchain/index.js";
+import { getUserPositions, getUserHealthFactor } from "../blockchain/index.js";
 import { getEnabledNetworks } from "./network/network.service.js";
 import { getAssetPriceUSD } from "./price/price.service.js";
 import { getAssetByAddress } from "./asset/asset.service.js";
@@ -17,22 +17,11 @@ export async function getWalletPositions(userId, walletAddress) {
 
   const networksPositions = {};
   // Получаем данные Aave через фасад
-
-  //console.log("getWalletPositions");
   const networks = await getEnabledNetworks();
-
-  //console.log("getWalletPositions", networks);
   for (const network of Object.values(networks)) {
-    //console.log("network: ", network);
-    //const { positions, healthFactor } = await getUserPositions(
     let result = await getUserPositions(network.name, "aave", walletAddress);
     const positions = (await result.positions) || [];
     const healthFactor = result.healthFactor || 0;
-    // console.log(
-    //   "getUserPositions positions (" + network.name + ")",
-    //   positions,
-    //   healthFactor,
-    // );
     if (result.error) {
       networksPositions[network.name] = {
         error: result.error,
@@ -44,8 +33,6 @@ export async function getWalletPositions(userId, walletAddress) {
     const borrows = [];
     let totalSuppliedUsd = 0;
     let totalBorrowedUsd = 0;
-    //console.log("healthFactor: ", healthFactor);
-    //console.log("positions: ", positions);
     for (const position of positions) {
       const assetAddress = position.assetAddress.toLowerCase();
       const asset = await getAssetByAddress(network.id, assetAddress);
@@ -92,6 +79,22 @@ export async function getWalletPositions(userId, walletAddress) {
       healthFactor,
     };
   }
-  //console.log("networksPositions", networksPositions);
+  return networksPositions;
+}
+
+export async function getWalletHealthFactor(userId, walletAddress) {
+  // 🔐 Проверка подписки
+  await assertCanViewPositions(userId);
+
+  const networksPositions = {};
+  // Получаем данные Aave через фасад
+  const networks = await getEnabledNetworks();
+
+  for (const network of Object.values(networks)) {
+    let result = await getUserHealthFactor(network.name, "aave", walletAddress);
+    const healthFactor = result || 0;
+
+    networksPositions[network.name] = healthFactor;
+  }
   return networksPositions;
 }

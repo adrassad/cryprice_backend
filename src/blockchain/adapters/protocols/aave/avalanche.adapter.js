@@ -3,7 +3,7 @@ import { AaveBaseAdapter } from "../base.protocol.js";
 
 import { Aave } from "../../../abi/index.js";
 import { getTokenMetadata } from "../../../helpers/tokenMetadata.js";
-import { formatHealthFactor } from "../../../helpers/healthFactor.js";
+import { parseHealthFactor } from "../../../helpers/healthFactor.js";
 
 export const RAY = 10n ** 27n;
 export class AaveAvalancheAdapter extends AaveBaseAdapter {
@@ -32,7 +32,6 @@ export class AaveAvalancheAdapter extends AaveBaseAdapter {
   async getPool() {
     if (!this.pool) {
       const poolAddress = await this.poolAddressesProvider.getPool();
-      //console.log("AVALANCHE poolAddress: ", poolAddress);
       this.pool = new Contract(
         poolAddress,
         Aave.AavePoolV3.AAVE_POOL_V3_ABI,
@@ -87,14 +86,14 @@ export class AaveAvalancheAdapter extends AaveBaseAdapter {
     return prices;
   }
 
-  async getHealthFactor(userAddress) {
+  async getUserHealthFactor(userAddress) {
     try {
       const pool = await this.getPool();
       const data = await pool.getUserAccountData(userAddress);
 
-      return formatHealthFactor(data.healthFactor);
+      return parseHealthFactor(data.healthFactor);
     } catch (e) {
-      console.warn("⚠️ getHealthFactor failed:", e.message);
+      console.warn("⚠️ getUserHealthFactor failed:", e.message);
       return 0;
     }
   }
@@ -104,7 +103,7 @@ export class AaveAvalancheAdapter extends AaveBaseAdapter {
     let positions = [];
 
     // Получаем healthFactor напрямую
-    const healthFactor = await this.getHealthFactor(userAddress);
+    const healthFactor = await this.getUserHealthFactor(userAddress);
 
     try {
       const uiDataProvider = new Contract(

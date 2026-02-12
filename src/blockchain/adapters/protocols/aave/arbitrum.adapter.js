@@ -3,7 +3,7 @@ import { Contract, getAddress, isAddress } from "ethers";
 import { AaveBaseAdapter } from "../base.protocol.js";
 import { Aave } from "../../../abi/index.js";
 import { getTokenMetadata } from "../../../helpers/tokenMetadata.js";
-import { formatHealthFactor } from "../../../helpers/healthFactor.js";
+import { parseHealthFactor } from "../../../helpers/healthFactor.js";
 
 export class AaveArbitrumAdapter extends AaveBaseAdapter {
   constructor({ provider, config }) {
@@ -14,7 +14,6 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
     }
 
     const correctAddress = getAddress(config.ADDRESSES_PROVIDER);
-    //console.log("correctAddress: ", correctAddress);
     this.addressesProvider = new Contract(
       correctAddress,
       Aave.PoolAddressesProviderV3.POOL_ADDRESSES_PROVIDER_V3_ABI,
@@ -37,13 +36,11 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
   async getOracle() {
     if (!this.oracle) {
       const oracleAddress = await this.addressesProvider.getPriceOracle();
-      //console.log("getOracle oracleAddress", oracleAddress);
       this.oracle = new Contract(
         oracleAddress,
         Aave.Oracle.AAVE_ORACLE_ABI,
         this.provider,
       );
-      //this.baseCurrencyDecimals = await this.oracle.BASE_CURRENCY_DECIMALS();
     }
     return this.oracle;
   }
@@ -74,7 +71,6 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
   }
 
   async getPrices(assets) {
-    //console.log("ARBITRUM getPrices: ");
     const ORACLE_DECIMALS = 8;
     const oracle = await this.getOracle();
 
@@ -110,25 +106,22 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
         }
       }),
     );
-    // console.log("getPrices prices", prices);
     return prices;
   }
 
-  async getHealthFactor(userAddress) {
+  async getUserHealthFactor(userAddress) {
     try {
       const pool = await this.getPool();
       const { healthFactor } = await pool.getUserAccountData(userAddress);
-      return formatHealthFactor(healthFactor);
+      return parseHealthFactor(healthFactor);
     } catch (e) {
-      console.warn("⚠️ getHealthFactor failed:", e.message);
+      console.warn("⚠️ getUserHealthFactor failed:", e.message);
       return "0.0000";
     }
   }
 
   async getUserPositions(userAddress) {
-    const healthFactor = await this.getHealthFactor(userAddress);
-    console.log("healthFactor: ", healthFactor);
-
+    const healthFactor = await this.getUserHealthFactor(userAddress);
     try {
       const uiAddress = getAddress(this.config.DATA_PROVIDER);
       const ui = new Contract(
@@ -144,7 +137,6 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
 
       const positions = parseUserPositions(userReserves);
 
-      //positions: console.log("positions: ", positions);
       return {
         positions,
         healthFactor: healthFactor,

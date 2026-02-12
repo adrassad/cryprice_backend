@@ -10,7 +10,6 @@ export async function getEnabledNetworks() {
 
 export async function loadNetworksToCache() {
   const networks = await db.networks.getNetworks();
-  //console.log("loadNetworksToCache networks: ", networks);
   const mapNetworks = {};
   for (const network of networks) {
     mapNetworks[network.id] = {

@@ -2,7 +2,6 @@
 import { JsonRpcProvider } from "ethers";
 
 export function createArbitrumNetwork(config) {
-  //console.log('createArbitrumNetwork: config', config);
   return {
     name: "arbitrum",
     chainId: config.CHAIN_ID,

@@ -11,7 +11,7 @@ export class AaveBaseAdapter extends BaseProtocol {
     throw new Error("Not implemented");
   }
 
-  async getHealthFactor(userAddress) {
+  async getUserHealthFactor(userAddress) {
     throw new Error("Not implemented");
   }
 }

@@ -2,7 +2,7 @@
 import { Markup } from "telegraf";
 import { getUserWallets } from "../../services/wallet/wallet.service.js";
 import { getWalletPositions } from "../../services/aave.service.js";
-import { message } from "telegraf/filters";
+import { formatHealthFactorForUI } from "../utils/formatters.js";
 
 export function positionsCommand(bot) {
   // Команда /positions
@@ -48,16 +48,15 @@ export function positionsCommand(bot) {
         ctx.from.id,
         wallet.address,
       );
-      //console.log("/wallet_positions networksPositions: ", networksPositions);
       for (const [networkName, data] of Object.entries(networksPositions)) {
         const { supplies, borrows, totals, healthFactor, error } = data;
 
-        console.log("healthFactor: ", healthFactor);
-
-        await ctx.reply(`🔗 Network: ${networkName}`);
+        await ctx.reply(`🔗 Network: ${networkName.toUpperCase()}`);
         if (error) {
           ctx.reply(`error: ${error}`);
-          ctx.reply(`🛡 Health Factor: ${healthFactor}`);
+          ctx.reply(
+            `🛡 Health Factor: ${formatHealthFactorForUI(healthFactor)}`,
+          );
           continue;
         }
 
@@ -78,7 +77,6 @@ export function positionsCommand(bot) {
           }
 
           if (borrows.length) {
-            //console.log('borrows: ', borrows);
             let text = `📉 Borrowed (Total: ${totals.borrowedUsd.toFixed(2)} USD):\n`;
             for (const b of borrows) {
               text += `• ${b.symbol}: ${(b.amount ?? 0).toFixed(5)} (${(b.usd ?? 0).toFixed(2)} USD)`;
@@ -87,7 +85,9 @@ export function positionsCommand(bot) {
             messages.push(text);
           }
 
-          messages.push(`🛡 Health Factor: ${healthFactor}`);
+          messages.push(
+            `🛡 Health Factor: ${formatHealthFactorForUI(healthFactor)}`,
+          );
 
           // Отправляем все сообщения
           for (const msg of messages) {

@@ -25,7 +25,6 @@ export function createProtocolAdapter({
         return new AaveArbitrumAdapter({ provider, config: protocolConfig });
 
       case "avalanche":
-        //console.log("caseavalanche: ", provider, protocolConfig);
         return new AaveAvalancheAdapter({ provider, config: protocolConfig });
 
       default:
