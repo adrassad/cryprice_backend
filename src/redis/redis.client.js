@@ -6,10 +6,10 @@ export const redis = new Redis({
   port: process.env.REDIS_PORT ?? 6379,
   lazyConnect: true, // 🔥 важно
   maxRetriesPerRequest: 3, // не блокировать event loop
-  enableOfflineQueue: true,
-  keepAlive: 30000,
+  enableOfflineQueue: false,
+  keepAlive: 60000,
   retryStrategy(times) {
-    return Math.min(times * 100, 2000);
+    return Math.min(times * 600, 2000);
   },
   reconnectOnError(err) {
     const targetError = "READONLY";

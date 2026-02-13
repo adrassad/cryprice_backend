@@ -1,7 +1,7 @@
 // src/cache/price.cache.js
 import { redis } from "../redis/redis.client.js";
 
-const PRICE_TTL = 60 * 60; // 1 час
+const PRICE_TTL = 60 * 120; // 1 час
 
 function pricesKey(networkId) {
   return `prices:${networkId}`;

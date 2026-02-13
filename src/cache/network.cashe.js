@@ -1,6 +1,6 @@
 import { redis } from "../redis/redis.client.js";
 
-const TTL = 60 * 60;
+const TTL = 60 * 120;
 
 export async function setNetworksToCashe(networks) {
   if (!redis || redis.status === "end") return null;

@@ -1,7 +1,7 @@
 // src/cache/asset.cache.js
 import { redis } from "../redis/redis.client.js";
 
-const TTL = 60 * 60; // 1 час
+const TTL = 60 * 120; // 1 час
 
 function assetsKey(networkId) {
   return `assets:${networkId}`;
