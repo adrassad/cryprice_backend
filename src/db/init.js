@@ -84,9 +84,10 @@ export async function initDb() {
       network_id INTEGER NOT NULL
         REFERENCES networks(id)
         ON DELETE CASCADE,
-      healthfactor NUMERIC(38,18) NOT NULL,
+      healthfactor DOUBLE PRECISION NOT NULL,
       timestamp TIMESTAMP NOT NULL DEFAULT NOW()
-    )
+    );
+
   `);
   // Индекс для быстрого поиска последнего HF
   await dbClient.query(`

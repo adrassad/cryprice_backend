@@ -24,6 +24,10 @@ export function createHFRepository(db) {
       }
     },
     async create(data) {
+      const normalizedHF =
+        data.healthfactor === Infinity
+          ? Infinity
+          : Number(data.healthfactor.toFixed(2));
       const { rowCount } = await db.query(
         `
         INSERT INTO healthfactors (wallet_id, protocol, network_id, healthfactor)
@@ -42,7 +46,7 @@ export function createHFRepository(db) {
         )
         RETURNING id;
         `,
-        [data.wallet_id, data.protocol, data.network_id, data.healthfactor],
+        [data.wallet_id, data.protocol, data.network_id, normalizedHF],
       );
       return rowCount > 0;
     },

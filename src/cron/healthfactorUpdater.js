@@ -34,7 +34,7 @@ export async function startHealthFactorSyncCron() {
 }
 
 // 🚀 1. запуск сразу при старте приложения
-startHealthFactorSyncCron();
+//startHealthFactorSyncCron();
 
 // ⏱ 2. запуск каждые 5 мин
-cron.schedule("*/5 * * * *", startHealthFactorSyncCron);
+cron.schedule("*/1 * * * *", startHealthFactorSyncCron);
