@@ -51,7 +51,7 @@ export function positionsCommand(bot) {
       for (const [networkName, data] of Object.entries(networksPositions)) {
         const { supplies, borrows, totals, healthFactor, error } = data;
 
-        await ctx.reply(`🔗 Network: ${networkName.toUpperCase()}`);
+        await ctx.reply(`🔗 ${networkName.toUpperCase()}`);
         if (error) {
           ctx.reply(`error: ${error}`);
           ctx.reply(

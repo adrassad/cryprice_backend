@@ -143,8 +143,6 @@ export class AaveEthereumAdapter extends AaveBaseAdapter {
       );
 
       const positions = parseUserPositions(userReserves);
-
-      //positions: console.log("positions: ", positions);
       return {
         positions,
         healthFactor: healthFactor,

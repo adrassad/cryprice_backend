@@ -12,7 +12,7 @@ import { getPrices } from "../../blockchain/index.js";
 export async function syncPrices() {
   const networks = await getEnabledNetworks();
   for (const network of Object.values(networks)) {
-    console.log(`🔗 Network: ${network.name} `, network.id);
+    console.log(`🔗${network.name} `, network.id);
     await loadPricesToCache(network.id);
     const assets = await getAddressAssetsByNetwork(network.id);
     const prices = await getPrices(network.name, "aave", Object.values(assets));

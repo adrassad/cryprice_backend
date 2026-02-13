@@ -22,7 +22,7 @@ export const redis = new Redis({
 
 // Подписка на события
 redis.on("connect", () => {
-  console.log("🟢 Redis connected");
+  console.log("🟢 Redis connected", new Date().toISOString());
 });
 
 redis.on("error", (err) => {
@@ -34,7 +34,7 @@ redis.on("close", () => {
 });
 
 redis.on("reconnecting", () => {
-  console.log("🔄 Redis reconnecting...");
+  console.log("🔄 Redis reconnecting...", new Date().toISOString());
 });
 
 // Функция для подключения Redis при старте приложения

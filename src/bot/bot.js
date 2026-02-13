@@ -4,6 +4,7 @@ import { addWalletScene } from "./scenes/addWallet.scene.js";
 import { registerHandlers } from "./handlers/index.js";
 import { registerCommands } from "./commands/index.js";
 import { removeWalletScene } from "./scenes/removeWallet.scene.js";
+import { setBot } from "./bot.instance.js";
 
 export function startBot() {
   const bot = new Telegraf(ENV.BOT_TOKEN);
@@ -17,7 +18,8 @@ export function startBot() {
   registerHandlers(bot);
 
   bot.launch();
-  console.log("🤖 Telegram bot started");
+  setBot(bot);
+  console.log("🤖 Telegram bot started", new Date().toISOString());
 
   return bot;
 }

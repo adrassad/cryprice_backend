@@ -2,15 +2,15 @@
 
 export function createWalletRepository(db) {
   return {
-    async addWallet(userId, address, chain = 'arbitrum', label = null) {
+    async addWallet(userId, address, label = null) {
       const res = await db.query(
         `
-        INSERT INTO wallets (user_id, address, chain, label)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO wallets (user_id, address, label)
+        VALUES ($1, $2, $3)
         ON CONFLICT (user_id, address) DO NOTHING
         RETURNING *
         `,
-        [userId, address.toLowerCase(), chain, label]
+        [userId, address.toLowerCase(), label],
       );
       return res.rows[0] || null;
     },
@@ -22,7 +22,7 @@ export function createWalletRepository(db) {
         WHERE id = $1 AND user_id = $2
         RETURNING *
         `,
-        [walletId, userId]
+        [walletId, userId],
       );
       return res.rows[0] || null;
     },
@@ -30,12 +30,23 @@ export function createWalletRepository(db) {
     async getWalletsByUser(userId) {
       const res = await db.query(
         `
-        SELECT id, address, chain, label, created_at
+        SELECT id, address, label, created_at
         FROM wallets
         WHERE user_id = $1
         ORDER BY created_at ASC
         `,
-        [userId]
+        [userId],
+      );
+      return res.rows;
+    },
+
+    async getAllWallets() {
+      const res = await db.query(
+        `
+        SELECT id, user_id, address,  label, created_at
+        FROM wallets
+        ORDER BY created_at ASC
+        `,
       );
       return res.rows;
     },
@@ -47,7 +58,7 @@ export function createWalletRepository(db) {
         FROM wallets
         WHERE user_id = $1
         `,
-        [userId]
+        [userId],
       );
       return res.rows[0].count;
     },
@@ -60,9 +71,9 @@ export function createWalletRepository(db) {
         WHERE user_id = $1 AND address = $2
         LIMIT 1
         `,
-        [userId, address.toLowerCase()]
+        [userId, address.toLowerCase()],
       );
       return res.rowCount > 0;
-    }
+    },
   };
 }

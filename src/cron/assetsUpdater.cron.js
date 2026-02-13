@@ -6,18 +6,21 @@ let isRunning = false;
 
 export async function startAssetSyncCron() {
   if (isRunning) {
-    console.log("⏭ Asset sync already running");
+    console.log("⏭ Asset sync already running", new Date().toISOString());
     return;
   }
   isRunning = true;
 
-  console.log("⏱ Updating assets...");
+  console.log("⏱ Updating assets...", new Date().toISOString());
 
   try {
     await syncAssets();
-    console.log("✅ Asset sync completed successfully");
+    console.log(
+      "✅ Asset sync completed successfully",
+      new Date().toISOString(),
+    );
   } catch (e) {
-    console.error("❌ Asset updater failed:", e);
+    console.error("❌ Asset updater failed:", new Date().toISOString(), e);
   } finally {
     isRunning = false;
   }

@@ -44,7 +44,7 @@ export function healthFactorCommand(bot) {
         wallet.address,
       );
       for (const [networkName, data] of Object.entries(networksPositions)) {
-        await ctx.reply(`🔗 Network: ${networkName.toUpperCase()}`);
+        await ctx.reply(`🔗 ${networkName.toUpperCase()}`);
         await ctx.reply(`🛡 Health Factor: ${formatHealthFactorForUI(data)}`);
       }
     } catch (e) {
