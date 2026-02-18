@@ -3,10 +3,14 @@ import { Markup } from "telegraf";
 import { getUserWallets } from "../../services/wallet/wallet.service.js";
 import { formatHealthFactorOverview } from "../utils/hfFormatter.js";
 import { collectHealthFactors } from "../../services/healthfactor/healthfactor.collector.js";
+import { assertCanViewPositions } from "../../services/subscription/subscription.service.js";
 
 export function healthFactorCommand(bot) {
   bot.command("healthfactor", async (ctx) => {
     const userId = ctx.from.id;
+    // 🔐 Проверка подписки
+    await assertCanViewPositions(userId);
+
     const wallets = await getUserWallets(userId);
 
     if (!wallets.length) {
@@ -31,25 +35,20 @@ export function healthFactorCommand(bot) {
 
     await ctx.answerCbQuery();
 
-    try {
-      const resultMap = await collectHealthFactors({
-        userId,
-        walletId,
-        checkChange: false,
-      });
+    const resultMap = await collectHealthFactors({
+      userId,
+      walletId,
+      checkChange: false,
+    });
 
-      const walletMap = resultMap.get(userId);
+    const walletMap = resultMap.get(userId);
 
-      if (!walletMap) {
-        return ctx.reply("❌ Кошелек не найден");
-      }
-
-      const message = formatHealthFactorOverview(walletMap);
-
-      await ctx.reply(message, { parse_mode: "HTML" });
-    } catch (e) {
-      console.error(e);
-      await ctx.reply("⚠️ Ошибка при получении позиций Aave.");
+    if (!walletMap) {
+      return ctx.reply("❌ Кошелек не найден");
     }
+
+    const message = formatHealthFactorOverview(walletMap);
+
+    await ctx.reply(message, { parse_mode: "HTML" });
   });
 }

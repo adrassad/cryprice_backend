@@ -4,7 +4,7 @@ import { startBot } from "../bot/bot.js";
 import { startServer } from "../api/server.js";
 
 export async function startRuntime() {
-  startCrons();
+  //startCrons();
   startBot();
-  startServer();
+  //startServer();
 }

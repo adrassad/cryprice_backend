@@ -7,10 +7,10 @@ function normalizeAddress(address) {
   return address.trim().toLowerCase();
 }
 
-export async function addUserWallet(userId, address, label = null) {
+export async function addUserWallet(telegramId, address, label = null) {
   //🔐 ПРОВЕРКА ПОДПИСКИ
-  const count = await db.wallets.countWalletsByUser(userId);
-  await assertCanAddWallet(userId, count);
+  const count = await db.wallets.countWalletsByUser(telegramId);
+  await assertCanAddWallet(telegramId, count);
 
   // 🔐 Проверка адреса
   if (!ethers.isAddress(address)) {
@@ -20,16 +20,16 @@ export async function addUserWallet(userId, address, label = null) {
   const normalizedAddress = normalizeAddress(address);
 
   // 🔁 Проверка на существование
-  const exists = await db.wallets.walletExists(userId, normalizedAddress);
+  const exists = await db.wallets.walletExists(telegramId, normalizedAddress);
   if (exists) {
     throw new Error("WALLET_ALREADY_EXISTS");
   }
 
-  return db.wallets.addWallet(userId, normalizedAddress, label);
+  return db.wallets.addWallet(telegramId, normalizedAddress, label);
 }
 
-export async function removeUserWallet(userId, walletId) {
-  const removed = await db.wallets.removeWallet(userId, walletId);
+export async function removeUserWallet(telegramId, walletId) {
+  const removed = await db.wallets.removeWallet(telegramId, walletId);
 
   if (!removed) {
     throw new Error("WALLET_NOT_FOUND");
@@ -38,8 +38,8 @@ export async function removeUserWallet(userId, walletId) {
   return removed;
 }
 
-export async function getUserWallets(userId) {
-  return db.wallets.getWalletsByUser(userId);
+export async function getUserWallets(telegramId) {
+  return db.wallets.getWalletsByUser(telegramId);
 }
 
 export async function getAllWallets() {

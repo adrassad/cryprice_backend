@@ -12,9 +12,6 @@ import { assertCanViewPositions } from "../subscription/subscription.service.js"
  * @param {string} networkName - имя сети ('arbitrum', 'ethereum' и т.д.)
  */
 export async function getWalletPositions(userId, walletAddress) {
-  // 🔐 Проверка подписки
-  await assertCanViewPositions(userId);
-
   const networksPositions = {};
   // Получаем данные Aave через фасад
   const networks = await getEnabledNetworks();

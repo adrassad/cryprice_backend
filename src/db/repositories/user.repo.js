@@ -7,10 +7,9 @@ export function createUserRepository(db) {
      * @param {number} telegramId
      */
     async findByTelegramId(telegramId) {
-      const res = await db.query(
-        `SELECT * FROM users WHERE telegram_id = $1`,
-        [telegramId]
-      );
+      const res = await db.query(`SELECT * FROM users WHERE telegram_id = $1`, [
+        telegramId,
+      ]);
       return res.rows[0] || null;
     },
 
@@ -29,11 +28,11 @@ export function createUserRepository(db) {
         VALUES (
           $1,
           'free',
-          NOW() + INTERVAL '60 days'
+          NOW() + INTERVAL '30 days'
         )
         ON CONFLICT (telegram_id) DO NOTHING
         `,
-        [telegramId]
+        [telegramId],
       );
     },
 
@@ -48,8 +47,8 @@ export function createUserRepository(db) {
         `UPDATE users
          SET subscription_level = $2, subscription_end = $3
          WHERE telegram_id = $1`,
-        [telegramId, level, endDate]
+        [telegramId, level, endDate],
       );
-    }
+    },
   };
 }

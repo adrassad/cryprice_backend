@@ -1,3 +1,4 @@
+//src/bot/commands/help.command.js
 export function helpCommand(bot) {
   bot.command("help", async (ctx) => {
     await ctx.reply(
