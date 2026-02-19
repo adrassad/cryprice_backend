@@ -14,23 +14,26 @@ export function createUserRepository(db) {
       return res.rows || [];
     },
 
-    async create(telegramId) {
-      await db.query(
+    async createUser(telegramId) {
+      const result = await db.query(
         `
-        INSERT INTO users (
-          telegram_id,
-          subscription_level,
-          subscription_end
-        )
-        VALUES (
-          $1,
-          'free',
-          NOW() + INTERVAL '30 days'
-        )
-        ON CONFLICT (telegram_id) DO NOTHING
-        `,
+          INSERT INTO users (
+            telegram_id,
+            subscription_level,
+            subscription_end
+          )
+          VALUES (
+            $1,
+            'free',
+            NOW() + INTERVAL '30 days'
+          )
+          ON CONFLICT (telegram_id) DO NOTHING
+          RETURNING *
+          `,
         [telegramId],
       );
+
+      return result.rows.length > 0 ? result.rows[0] : null;
     },
 
     async updateSubscription(telegramId, level, endDate) {

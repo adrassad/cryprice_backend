@@ -12,6 +12,20 @@ export async function getEnabledNetworks() {
   return cached;
 }
 
+export async function getNetwork(networkId) {
+  const cached = await getEnabledNetworksCache();
+  if (!cached[networkId]) {
+    return db.networks.getNetworkById(networkId);
+  }
+  return cached[networkId];
+}
+
+export async function createNetworks(networks) {
+  for (const network of networks) {
+    await db.networks.create(network);
+  }
+}
+
 export async function loadNetworksToCache() {
   await setNetworksToCashe(getEnabledNetworksFromDB());
 }

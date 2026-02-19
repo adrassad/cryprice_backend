@@ -9,6 +9,13 @@ export function createNetworkRepository(db) {
       return res.rows;
     },
 
+    async getNetworkById() {
+      const res = await db.query(`SELECT * FROM networks WHERE id = $1`, [
+        telegramId,
+      ]);
+      return res.rows[0] || null;
+    },
+
     async create(network) {
       await db.query(
         `

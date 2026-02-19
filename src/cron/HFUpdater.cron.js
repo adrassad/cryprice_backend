@@ -1,10 +1,10 @@
-// src/cron/assetsUpdater.cron.js
+// src/cron/HFUpdater.cron.js
 import cron from "node-cron";
 import { syncHF } from "../services/healthfactor/healthfactor.service.js";
 
 let isRunning = false;
 
-export async function startHealthFactorSyncCron() {
+export async function startHFSyncCron() {
   if (isRunning) {
     console.log(
       "⏭ HealthFactor sync already running",
@@ -37,4 +37,4 @@ export async function startHealthFactorSyncCron() {
 //startHealthFactorSyncCron();
 
 // ⏱ 2. запуск каждые 5 мин
-cron.schedule("*/5 * * * *", startHealthFactorSyncCron);
+cron.schedule("*/5 * * * *", startHFSyncCron);

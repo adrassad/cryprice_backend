@@ -60,10 +60,6 @@ export async function setPriceToCache(networkId, prices) {
       await redis.hset(pricesBySymbolKey(networkId), symbolEntries);
       await redis.expire(pricesBySymbolKey(networkId), PRICE_TTL);
     }
-
-    console.log(
-      `✅ Cached ${Object.keys(prices).length} prices for ${networkId}`,
-    );
   } catch (err) {
     console.warn("⚠️ Redis setPriceToCache failed:", err.message);
   }

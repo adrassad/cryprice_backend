@@ -12,7 +12,7 @@ export async function syncAssets() {
   console.log("⏱ Asset sync started");
   const networks = await getEnabledNetworks();
   for (const network of Object.values(networks)) {
-    console.log(`🔗${network.name} `, network.id);
+    console.log(`Asset 🔗${network.name} `, network.id);
 
     // 1️⃣ Получаем assets из blockchain
     const assets = await getAssets(network.name, "aave");
@@ -65,6 +65,13 @@ export async function getAllAssets() {
 
 export async function getAsset(networkId, addressOrSymbol) {
   return getAssetCache(networkId, addressOrSymbol);
+}
+
+export async function loadAllAssetsToCache() {
+  const networks = Object.values(await getEnabledNetworks());
+  for (const network of networks) {
+    await loadAssetsToCache(network.id);
+  }
 }
 
 export async function loadAssetsToCache(network_id) {

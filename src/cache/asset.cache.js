@@ -77,10 +77,6 @@ export async function setAssetsToCache(networkId, assets) {
       await redis.hset(assetsBySymbolKey(networkId), symbolEntries);
       await redis.expire(assetsBySymbolKey(networkId), TTL);
     }
-
-    console.log(
-      `✅ Cached ${Object.keys(assets).length} assets for ${networkId}`,
-    );
   } catch (err) {
     console.warn("⚠️ Redis setAssetsToCache failed:", err.message);
   }

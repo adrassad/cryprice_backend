@@ -6,14 +6,14 @@ import { setUserToCache, getUserCache } from "../../cache/user.cache.js";
  * Создать пользователя, если его нет
  */
 export async function createIfNotExists(telegramId) {
-  const user = await getUserCache(telegramId);
+  let user = await getUserCache(telegramId);
 
   if (!user) {
-    await db.users.create(telegramId);
-    return {
-      telegram_id: telegramId,
-      subscription_level: "free",
-    };
+    user = await db.users.findByTelegramId(telegramId);
+    if (!user) {
+      user = await db.users.createUser(telegramId);
+    }
+    await setUserToCache(telegramId, user);
   }
 
   return user;

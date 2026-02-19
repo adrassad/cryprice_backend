@@ -11,7 +11,7 @@ export async function setUserToCache(userId, user) {
   try {
     redis.set(usersKey(userId), JSON.stringify(user));
   } catch (err) {
-    console.warn("⚠️ Redis setUsersToCache failed:", err.message);
+    console.warn("⚠️ Redis setUserToCache failed:", err.message);
   }
 }
 
@@ -26,6 +26,16 @@ export async function setUsersToCache(users) {
   }
 }
 
+export async function delUserCache(userId) {
+  if (!redis || redis.status === "end") return;
+  try {
+    await redis.del(usersKey(userId));
+  } catch (err) {
+    console.warn("⚠️ Redis delUserCache failed:", err.message);
+  }
+}
+
 export async function getUserCache(userId) {
-  return redis.get(usersKey(userId));
+  const userJson = await redis.get(usersKey(userId));
+  return JSON.parse(userJson);
 }
