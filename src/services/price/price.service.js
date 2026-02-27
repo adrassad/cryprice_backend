@@ -84,10 +84,10 @@ export async function savePriceIfChanged(network, asset, priceUsd) {
     return;
   }
   const address = asset.address.toLowerCase();
-  const lastPrice = 0;
+  let lastPrice = 0;
   const dataPrice = await getPriceCache(network.id, address);
-  if (dataPrice && dataPrice.priceUSD) {
-    lastPrice = dataPrice.priceUSD;
+  if (dataPrice && dataPrice.price_usd) {
+    lastPrice = dataPrice.price_usd;
   }
 
   // если цена не изменилась — ничего не делаем

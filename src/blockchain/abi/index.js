@@ -9,6 +9,10 @@ import * as UiPoolDataProviderV3 from "./aave/uiPoolDataProviderV3.abi.js";
 import * as AaveOracle from "./aave/oracle.abi.js";
 import * as AaveDataProvider from "./aave/aaveDataProvider.abi.js";
 
+import { abiRegistry } from "./abiRegistry.js";
+import { abiLoaderService } from "./abiloader.service.js";
+import { bootstrapABI } from "./abiBootstrap.js";
+
 const Aave = {
   PoolAddressesProviderV3,
   AavePoolV3,
@@ -17,4 +21,6 @@ const Aave = {
   DataProvider: AaveDataProvider,
 };
 
-export { ERC20, Aave };
+export { ERC20, Aave, bootstrapABI, abiLoaderService };
+
+export const AbiRegistry = abiRegistry;

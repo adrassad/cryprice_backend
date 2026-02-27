@@ -27,7 +27,10 @@ export async function startAssetSyncCron() {
 }
 
 // 🚀 1. запуск сразу при старте приложения
-startAssetSyncCron();
+// startAssetSyncCron();
 
 // ⏱ 2. запуск каждый час
-cron.schedule("0 * * * *", startAssetSyncCron);
+cron.schedule("0 * * * *", startAssetSyncCron, {
+  scheduled: true,
+  timezone: "UTC", // или Europe/Helsinki
+});

@@ -7,6 +7,7 @@ export function createProtocolAdapter({
   networkName,
   provider,
   protocolConfig,
+  AbiRegistry,
 }) {
   if (!protocolName) {
     throw new Error("protocolName is required");
@@ -19,13 +20,25 @@ export function createProtocolAdapter({
   if (protocolName === "aave") {
     switch (networkName) {
       case "ethereum":
-        return new AaveEthereumAdapter({ provider, config: protocolConfig });
+        return new AaveEthereumAdapter({
+          provider,
+          config: protocolConfig,
+          AbiRegistry,
+        });
 
       case "arbitrum":
-        return new AaveArbitrumAdapter({ provider, config: protocolConfig });
+        return new AaveArbitrumAdapter({
+          provider,
+          config: protocolConfig,
+          AbiRegistry,
+        });
 
       case "avalanche":
-        return new AaveAvalancheAdapter({ provider, config: protocolConfig });
+        return new AaveAvalancheAdapter({
+          provider,
+          config: protocolConfig,
+          AbiRegistry,
+        });
 
       default:
         throw new Error(

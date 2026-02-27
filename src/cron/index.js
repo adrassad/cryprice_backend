@@ -5,8 +5,8 @@
  */
 export async function startCrons() {
   console.log("🕒 Starting cron jobs...", new Date().toISOString());
-  const { startAssetSyncCron } = await import("./assetsUpdater.cron.js");
-  await startAssetSyncCron();
+
+  await import("./assetsUpdater.cron.js");
 
   const { startPriceSyncCron } = await import("./priceUpdater.cron.js");
   await startPriceSyncCron();

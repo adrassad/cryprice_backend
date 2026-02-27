@@ -1,137 +1,202 @@
-// src/blockchain/adapters/protocols/aave/arbitrum.adapter.js
 import { Contract, getAddress, isAddress } from "ethers";
 import { AaveBaseAdapter } from "../base.protocol.js";
-import { Aave } from "../../../abi/index.js";
+import { ERC20, Aave } from "../../../abi/index.js";
 import { getTokenMetadata } from "../../../helpers/tokenMetadata.js";
 import { parseHealthFactor } from "../../../helpers/healthFactor.js";
 
 export class AaveArbitrumAdapter extends AaveBaseAdapter {
-  constructor({ provider, config }) {
+  constructor({ provider, config, AbiRegistry }) {
     super({ provider, config });
+
+    this.AbiRegistry = AbiRegistry;
+    this.networkName = "arbitrum";
 
     if (!config.ADDRESSES_PROVIDER) {
       throw new Error("Aave ADDRESSES_PROVIDER not configured");
     }
 
-    const correctAddress = getAddress(config.ADDRESSES_PROVIDER);
-    this.addressesProvider = new Contract(
-      correctAddress,
-      Aave.PoolAddressesProviderV3.POOL_ADDRESSES_PROVIDER_V3_ABI,
-      provider,
-    );
+    this.addressesProviderAddress = getAddress(config.ADDRESSES_PROVIDER);
+  }
+
+  /**
+   * lazy init addresses provider
+   */
+  async getAddressesProvider() {
+    if (!this.addressesProvider) {
+      const abi = await this.AbiRegistry.get(
+        this.networkName,
+        this.addressesProviderAddress,
+        "aave",
+      );
+
+      this.addressesProvider = new Contract(
+        this.addressesProviderAddress,
+        abi,
+        this.provider,
+      );
+    }
+
+    return this.addressesProvider;
   }
 
   async getPool() {
     if (!this.pool) {
-      const poolAddress = await this.addressesProvider.getPool();
-      this.pool = new Contract(
+      const provider = await this.getAddressesProvider();
+
+      const poolAddress = await provider.getPoolDataProvider();
+
+      const abi = await this.AbiRegistry.get(
+        this.networkName,
         poolAddress,
-        Aave.AavePoolV3.AAVE_POOL_V3_ABI,
-        this.provider,
+        "aave",
       );
+
+      this.pool = new Contract(poolAddress, abi, this.provider);
     }
+
+    return this.pool;
+  }
+  async getPoolHF() {
+    if (!this.pool) {
+      const provider = await this.getAddressesProvider();
+
+      const poolAddress = await provider.getPool();
+
+      const abi = await this.AbiRegistry.get(
+        this.networkName,
+        poolAddress,
+        "aave",
+      );
+
+      this.pool = new Contract(poolAddress, abi, this.provider);
+    }
+
     return this.pool;
   }
 
   async getOracle() {
     if (!this.oracle) {
-      const oracleAddress = await this.addressesProvider.getPriceOracle();
-      this.oracle = new Contract(
+      const provider = await this.getAddressesProvider();
+
+      const oracleAddress = await provider.getPriceOracle();
+
+      const abi = await this.AbiRegistry.get(
+        this.networkName,
         oracleAddress,
-        Aave.Oracle.AAVE_ORACLE_ABI,
-        this.provider,
+        "aave",
       );
+
+      this.oracle = new Contract(oracleAddress, abi, this.provider);
     }
+
     return this.oracle;
   }
 
   async getDataProvider() {
     if (!this.dataProvider) {
-      const address = await this.addressesProvider.getPoolDataProvider();
-      this.dataProvider = new Contract(
-        address,
-        Aave.DataProvider.AAVE_DATA_PROVIDER_ABI,
-        this.provider,
-      );
+      const provider = await this.getAddressesProvider();
+
+      const address = await provider.getPoolDataProvider();
+
+      const abi = await this.AbiRegistry.get(this.networkName, address, "aave");
+
+      this.dataProvider = new Contract(address, abi, this.provider);
     }
+
     return this.dataProvider;
   }
 
   async getAssets() {
     const pool = await this.getPool();
-    const reserves = await pool.getReservesList();
+
+    // const reserves = await pool.getReservesList();
+    const reserves = await pool.getAllReservesTokens();
 
     const assets = await Promise.all(
-      reserves.map((address) =>
-        getTokenMetadata(address, this.provider).catch(() => null),
+      reserves.map((reserve) =>
+        getTokenMetadata(reserve[1], this.provider).catch(() => null),
       ),
     );
-    // ❗️отсекаем битые токены
+
     return assets.filter(Boolean);
   }
 
   async getPrices(assets) {
     const ORACLE_DECIMALS = 8;
+
     const oracle = await this.getOracle();
 
     const prices = {};
 
-    // ⚡ параллельные запросы
-    await Promise.all(
-      assets.map(async (asset) => {
-        const { address, symbol } = asset;
+    // отфильтровать и нормализовать адреса
+    const validAssets = assets.filter((a) => a.address && isAddress(a.address));
 
-        // 🛡 защита
-        if (!address || !isAddress(address)) {
-          console.warn("Invalid address:", address);
-          return;
-        }
+    if (!validAssets.length) {
+      return prices;
+    }
 
-        try {
-          const rawPrice = await oracle.getAssetPrice(address);
+    const addresses = validAssets.map((a) => a.address);
 
-          // иногда oracle возвращает 0 — это не ошибка
-          if (!rawPrice || rawPrice === 0n) return;
+    try {
+      // один вызов вместо множества
+      const rawPrices = await oracle.getAssetsPrices(addresses);
 
-          prices[address.toLowerCase()] = {
-            address,
-            symbol,
-            price: Number(rawPrice) / 10 ** ORACLE_DECIMALS,
-          };
-        } catch (e) {
-          console.warn(
-            `⚠️ Price fetch failed for ${symbol} (${address}):`,
-            e.shortMessage || e.message,
-          );
-        }
-      }),
-    );
+      rawPrices.forEach((rawPrice, index) => {
+        if (!rawPrice || rawPrice === 0n) return;
+
+        const asset = validAssets[index];
+        const addressLower = asset.address.toLowerCase();
+
+        prices[addressLower] = {
+          address: asset.address,
+          symbol: asset.symbol,
+          price: Number(rawPrice) / 10 ** ORACLE_DECIMALS,
+        };
+      });
+    } catch (e) {
+      console.error("Batch price fetch failed:", e.message);
+    }
+
     return prices;
   }
 
   async getUserHealthFactor(userAddress) {
     try {
-      const pool = await this.getPool();
+      const provider = await this.getAddressesProvider();
+      const proxiPoolAddress = await provider.getPool();
+
+      const abi = [
+        "function getUserAccountData(address user) view returns (uint256 totalCollateralBase, uint256 totalDebtBase, uint256 availableBorrowsBase, uint256 currentLiquidationThreshold, uint256 ltv, uint256 healthFactor)",
+      ];
+
+      const pool = new Contract(proxiPoolAddress, abi, this.provider);
+
       const { healthFactor } = await pool.getUserAccountData(userAddress);
+
       return parseHealthFactor(healthFactor);
     } catch (e) {
-      console.warn("⚠️ getUserHealthFactor failed: ", userAddress, e.message);
+      console.warn("getUserHealthFactor failed", e.message);
+
       return null;
     }
   }
 
   async getUserPositions(userAddress) {
     const healthFactor = await this.getUserHealthFactor(userAddress);
+
     try {
       const uiAddress = getAddress(this.config.DATA_PROVIDER);
-      const ui = new Contract(
+
+      const abi = await this.AbiRegistry.get(
+        this.networkName,
         uiAddress,
-        Aave.DataProvider.AAVE_DATA_PROVIDER_ABI_ARB,
-        this.provider,
+        "aave",
       );
 
-      const [userReserves, userEmodeCategoryId] = await ui.getUserReservesData(
-        this.addressesProvider.target,
+      const ui = new Contract(uiAddress, abi, this.provider);
+
+      const [userReserves] = await ui.getUserReservesData(
+        this.addressesProviderAddress,
         userAddress,
       );
 
@@ -139,21 +204,20 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
 
       return {
         positions,
-        healthFactor: healthFactor,
+        healthFactor,
         error: null,
       };
     } catch (e) {
       return {
         positions: [],
-        healthFactor: healthFactor,
+        healthFactor,
         error: e.message,
       };
     }
   }
 }
 
-export async function parseUserPositions(userReserves) {
-  // фильтруем реально существующие позиции и сразу возвращаем массив
+export function parseUserPositions(userReserves) {
   return userReserves
     .filter(
       (r) =>
