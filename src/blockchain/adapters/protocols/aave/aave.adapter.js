@@ -169,7 +169,7 @@ export class AaveAdapter extends AaveBaseAdapter {
   }
 
   async getUserPositions(userAddress) {
-    console.log("getUserPositions chain:", this.networkName);
+    // console.log("getUserPositions chain:", this.networkName);
     const healthFactor = await this.getUserHealthFactor(userAddress);
 
     try {
@@ -206,7 +206,7 @@ export class AaveAdapter extends AaveBaseAdapter {
 }
 
 export function parseUserPositions(userReserves) {
-  console.log("userReserves: ", userReserves);
+  // console.log("userReserves: ", userReserves);
   return userReserves
     .filter(
       (r) =>
