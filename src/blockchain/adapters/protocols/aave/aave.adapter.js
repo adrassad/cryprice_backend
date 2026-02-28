@@ -1,15 +1,15 @@
+//
 import { Contract, getAddress, isAddress } from "ethers";
 import { AaveBaseAdapter } from "../base.protocol.js";
-import { ERC20, Aave } from "../../../abi/index.js";
 import { getTokenMetadata } from "../../../helpers/tokenMetadata.js";
 import { parseHealthFactor } from "../../../helpers/healthFactor.js";
 
-export class AaveArbitrumAdapter extends AaveBaseAdapter {
-  constructor({ provider, config, AbiRegistry }) {
+export class AaveAdapter extends AaveBaseAdapter {
+  constructor({ provider, config, AbiRegistry, networkName }) {
     super({ provider, config });
 
     this.AbiRegistry = AbiRegistry;
-    this.networkName = "arbitrum";
+    this.networkName = networkName;
 
     if (!config.ADDRESSES_PROVIDER) {
       throw new Error("Aave ADDRESSES_PROVIDER not configured");
@@ -25,7 +25,7 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
     if (!this.addressesProvider) {
       const abi = await this.AbiRegistry.get(
         this.networkName,
-        this.addressesProviderAddress,
+        this.addressesProviderAddress.toLowerCase(),
         "aave",
       );
 
@@ -47,24 +47,7 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
 
       const abi = await this.AbiRegistry.get(
         this.networkName,
-        poolAddress,
-        "aave",
-      );
-
-      this.pool = new Contract(poolAddress, abi, this.provider);
-    }
-
-    return this.pool;
-  }
-  async getPoolHF() {
-    if (!this.pool) {
-      const provider = await this.getAddressesProvider();
-
-      const poolAddress = await provider.getPool();
-
-      const abi = await this.AbiRegistry.get(
-        this.networkName,
-        poolAddress,
+        poolAddress.toLowerCase(),
         "aave",
       );
 
@@ -82,7 +65,7 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
 
       const abi = await this.AbiRegistry.get(
         this.networkName,
-        oracleAddress,
+        oracleAddress.toLowerCase(),
         "aave",
       );
 
@@ -98,7 +81,11 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
 
       const address = await provider.getPoolDataProvider();
 
-      const abi = await this.AbiRegistry.get(this.networkName, address, "aave");
+      const abi = await this.AbiRegistry.get(
+        this.networkName,
+        address.toLowerCase(),
+        "aave",
+      );
 
       this.dataProvider = new Contract(address, abi, this.provider);
     }
@@ -182,6 +169,7 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
   }
 
   async getUserPositions(userAddress) {
+    console.log("getUserPositions chain:", this.networkName);
     const healthFactor = await this.getUserHealthFactor(userAddress);
 
     try {
@@ -189,7 +177,7 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
 
       const abi = await this.AbiRegistry.get(
         this.networkName,
-        uiAddress,
+        uiAddress.toLowerCase(),
         "aave",
       );
 
@@ -218,6 +206,7 @@ export class AaveArbitrumAdapter extends AaveBaseAdapter {
 }
 
 export function parseUserPositions(userReserves) {
+  console.log("userReserves: ", userReserves);
   return userReserves
     .filter(
       (r) =>
@@ -227,12 +216,33 @@ export function parseUserPositions(userReserves) {
           r.scaledVariableDebt > 0n),
     )
     .map((r) => ({
-      assetAddress: r.underlyingAsset,
-      aTokenBalance: r.scaledATokenBalance,
-      stableDebt: r.principalStableDebt,
-      variableDebt: r.scaledVariableDebt,
-      collateral: r.usageAsCollateralEnabledOnUser,
-      stableBorrowRate: r.stableBorrowRate,
-      stableBorrowLastUpdateTimestamp: r.stableBorrowLastUpdateTimestamp,
+      assetAddress: r?.underlyingAsset ?? null,
+      aTokenBalance: toBigIntSafe(r?.scaledATokenBalance),
+      stableDebt: toBigIntSafe(r?.principalStableDebt),
+      variableDebt: toBigIntSafe(r?.scaledVariableDebt),
+      collateral: toBoolSafe(r?.usageAsCollateralEnabledOnUser),
+      stableBorrowRate: toBigIntSafe(r?.stableBorrowRate),
+      stableBorrowLastUpdateTimestamp: toNumberSafe(
+        r?.stableBorrowLastUpdateTimestamp,
+      ),
     }));
+}
+
+function toBigIntSafe(value) {
+  if (value === undefined || value === null) return 0n;
+
+  try {
+    return BigInt(value);
+  } catch {
+    return 0n;
+  }
+}
+
+function toBoolSafe(value) {
+  return Boolean(value);
+}
+
+function toNumberSafe(value) {
+  if (value === undefined || value === null) return 0;
+  return Number(value);
 }

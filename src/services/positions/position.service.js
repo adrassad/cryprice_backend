@@ -3,7 +3,6 @@ import { getUserPositions } from "../../blockchain/index.js";
 import { getEnabledNetworks } from "../network/network.service.js";
 import { getAssetPriceUSD } from "../price/price.service.js";
 import { getAssetByAddress } from "../asset/asset.service.js";
-import { assertCanViewPositions } from "../subscription/subscription.service.js";
 
 /*
  * Получение позиций пользователя в Aave

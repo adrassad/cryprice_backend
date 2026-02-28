@@ -1,6 +1,4 @@
-import { AaveEthereumAdapter } from "./protocols/aave/ethereum.adapter.js";
-import { AaveArbitrumAdapter } from "./protocols/aave/arbitrum.adapter.js";
-import { AaveAvalancheAdapter } from "./protocols/aave/avalanche.adapter.js";
+import { AaveAdapter } from "./protocols/aave/aave.adapter.js";
 
 export function createProtocolAdapter({
   protocolName,
@@ -18,33 +16,12 @@ export function createProtocolAdapter({
   }
 
   if (protocolName === "aave") {
-    switch (networkName) {
-      case "ethereum":
-        return new AaveEthereumAdapter({
-          provider,
-          config: protocolConfig,
-          AbiRegistry,
-        });
-
-      case "arbitrum":
-        return new AaveArbitrumAdapter({
-          provider,
-          config: protocolConfig,
-          AbiRegistry,
-        });
-
-      case "avalanche":
-        return new AaveAvalancheAdapter({
-          provider,
-          config: protocolConfig,
-          AbiRegistry,
-        });
-
-      default:
-        throw new Error(
-          `Aave adapter not implemented for network ${networkName}`,
-        );
-    }
+    return new AaveAdapter({
+      provider,
+      config: protocolConfig,
+      AbiRegistry,
+      networkName,
+    });
   }
 
   throw new Error(

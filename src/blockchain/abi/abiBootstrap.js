@@ -1,6 +1,6 @@
 // src/blockchain/abi/abiBootstrap.js
 import { abiLoaderService } from "./abiloader.service.js";
-import { abiRegistry } from "./abiRegistry.js";
+import { AbiRegistry } from "./index.js";
 import { networksConfig } from "../../config/networks.config.js";
 import { networksRegistry } from "../networks/index.js";
 
@@ -28,7 +28,7 @@ export async function bootstrapABI() {
           );
 
           // Сохраняем в Registry для быстрого доступа
-          abiRegistry.save(networkName, address, abi, protocolName);
+          AbiRegistry.save(networkName, address, abi, protocolName);
 
           // Для Aave и похожих протоколов нужно предзагрузить вспомогательные контракты
           if (protocolName.toLowerCase() === "aave") {
@@ -48,7 +48,7 @@ export async function bootstrapABI() {
                   protocolName,
                   poolAddress,
                 );
-                abiRegistry.save(
+                AbiRegistry.save(
                   networkName,
                   poolAddress,
                   poolAbi,
@@ -68,7 +68,7 @@ export async function bootstrapABI() {
                   protocolName,
                   oracleAddress,
                 );
-                abiRegistry.save(
+                AbiRegistry.save(
                   networkName,
                   oracleAddress,
                   oracleAbi,
@@ -89,7 +89,7 @@ export async function bootstrapABI() {
                   protocolName,
                   dataProviderAddress,
                 );
-                abiRegistry.save(
+                AbiRegistry.save(
                   networkName,
                   dataProviderAddress,
                   dataProviderAbi,
