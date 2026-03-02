@@ -7,6 +7,7 @@ import {
   getWalletsByUser,
   setWalletsToCache,
   delWalletFromCache,
+  getAllWalletsCache,
 } from "../../cache/wallet.cache.js";
 
 function normalizeAddress(address) {
@@ -55,29 +56,88 @@ export async function removeUserWallet(telegramId, walletId) {
 }
 
 export async function getUserWallets(telegramId) {
-  //id, address, label, created_at
-  return await getWalletsByUser(telegramId);
+  // 1️⃣ Пытаемся взять из кеша
+  let walletsMap = await getWalletsByUser(telegramId);
+
+  if (walletsMap && walletsMap.size > 0) {
+    return walletsMap;
+  }
+
+  // 2️⃣ Cache miss → идем в БД
+  const walletsFromDb = await db.wallets.findById(telegramId);
+
+  const result = new Map();
+
+  for (const wallet of walletsFromDb) {
+    result.set(wallet.address, wallet);
+  }
+
+  // 3️⃣ Записываем в кеш
+  if (result.size > 0) {
+    await setWalletsToCache(telegramId, result);
+  }
+
+  return result;
 }
 
 export async function getUserWallet(telegramId, address) {
-  //id, address, label, created_at
-  return await (await getWalletsByUser(telegramId)).get(address);
+  const normalizedAddress = normalizeAddress(address);
+
+  // 1️⃣ пробуем из кеша
+  let walletsMap = await getWalletsByUser(telegramId);
+
+  if (walletsMap && walletsMap.size > 0) {
+    const wallet = walletsMap.get(normalizedAddress);
+    if (wallet) return wallet;
+  }
+
+  // 2️⃣ cache miss → идем в БД
+  const walletFromDb = await db.wallets.findOneByAddress(
+    telegramId,
+    normalizedAddress,
+  );
+
+  if (!walletFromDb) return null;
+
+  // 3️⃣ обновляем кеш (чтобы не было частичного кеша)
+  if (!walletsMap || walletsMap.size === 0) {
+    walletsMap = new Map();
+  }
+
+  walletsMap.set(normalizedAddress, walletFromDb);
+  await setWalletsToCache(telegramId, walletsMap);
+
+  return walletFromDb;
 }
 
 export async function getAllWallets() {
+  // 1️⃣ Пробуем кеш
+  let wallets = await getAllWalletsCache();
+
+  if (wallets && wallets.size > 0) {
+    return wallets;
+  }
+
+  // 2️⃣ Cache miss → DB
   const result = await db.wallets.findAll();
-  const wallets = new Map();
+  const grouped = new Map();
 
   for (const record of result) {
     const { address, ...rest } = record;
 
-    if (!wallets.has(address)) {
-      wallets.set(address, []);
+    if (!grouped.has(address)) {
+      grouped.set(address, []);
     }
 
-    wallets.get(address).push(rest);
+    grouped.get(address).push(rest);
   }
-  return wallets;
+
+  // 3️⃣ Записываем в кеш
+  if (grouped.size > 0) {
+    await setAllWalletsToCache(grouped);
+  }
+
+  return grouped;
 }
 
 export async function loadWalletsToCache() {
