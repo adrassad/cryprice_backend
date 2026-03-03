@@ -86,20 +86,29 @@ export async function collectHealthFactors({
 }
 
 async function calcHF(networks, addresses, checkChange) {
+  const limit = pLimit(CONCURRENCY);
   const mapHF = new Map();
+
+  const tasks = [];
   for (const address of addresses) {
     const mNet = new Map();
     for (const network of Object.values(networks)) {
-      const hfResult = await calculateAndStoreHF({
-        address,
-        network,
-        checkChange,
-      });
-      if (hfResult.healthfactor) {
-        mNet.set(network.name, hfResult);
-      }
+      tasks.push(
+        limit(async () => {
+          const hfResult = await calculateAndStoreHF({
+            address,
+            network,
+            checkChange,
+          });
+          if (!hfResult?.healthfactor) return;
+          if (hfResult.healthfactor) {
+            mNet.set(network.name, hfResult);
+          }
+        }),
+      );
     }
     mapHF.set(address, mNet);
   }
+  await Promise.all(tasks);
   return mapHF;
 }
