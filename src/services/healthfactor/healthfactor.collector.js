@@ -25,11 +25,15 @@ export async function collectHealthFactors({
   address = null,
   checkChange = false,
 }) {
-  const networks = await getEnabledNetworks();
   const limit = pLimit(CONCURRENCY);
 
   let resultMap = new Map();
   const tasks = [];
+
+  const networks = await getEnabledNetworks();
+
+  // 🟢 2. Сбор HF → userId -> address -> network -> healthfactor
+  const finalResult = new Map();
 
   // 🟢 1. Определяем набор кошельков
   let wallets;
@@ -37,31 +41,52 @@ export async function collectHealthFactors({
     const wallet = await getUserWallet(userId, address);
 
     if (!wallet) return new Map();
-
-    wallets = new Map();
-    wallets.set(wallet.address, [wallet]);
-
-    // заранее создаем entry под userId
-    resultMap.set(userId, wallets);
+    const mapHF = await calcHF(networks, [address], checkChange);
+    const userAddressMap = new Map();
+    for (const [address, networksHF] of mapHF.entries()) {
+      const networkMap = new Map();
+      for (const [network, hF] of networksHF.entries()) {
+        networkMap.set(network, networksHF.get(network).healthfactor);
+      }
+      userAddressMap.set(address, networkMap);
+    }
+    finalResult.set(userId, userAddressMap);
   } else if (userId) {
     const userWallets = await getUserWallets(userId);
-
-    wallets = new Map();
-    for (const wallet of userWallets) {
-      if (!wallets.has(wallet.address)) {
-        wallets.set(wallet.address, []);
-      }
-      wallets.get(wallet.address).push(wallet);
-    }
-    resultMap.set(userId, wallets);
+    const addresses = Object.keys(userWallets);
+    const mapHF = await calcHF(networks, addresses);
+    //пока не используется
   } else {
     resultMap = await getAllWallets();
+    const addresses = extractUniqueAddresses(resultMap);
+    const mapHF = await calcHF(networks, addresses, checkChange);
+    for (const [uId, walletsMap] of resultMap.entries()) {
+      const userAddressMap = new Map();
+      let hfIsChanged = false;
+      for (const address of walletsMap.keys()) {
+        const networkMap = new Map();
+        for (const network of Object.values(networks)) {
+          const resultHF = mapHF.get(address)?.get(network.name);
+          if (resultHF && resultHF.isChanged) {
+            networkMap.set(network.name, resultHF.healthfactor);
+            hfIsChanged = true;
+          }
+        }
+        if (hfIsChanged) {
+          userAddressMap.set(address, networkMap);
+        }
+      }
+      if (hfIsChanged) {
+        finalResult.set(uId, userAddressMap);
+      }
+    }
   }
 
-  const addresses = extractUniqueAddresses(resultMap);
+  return finalResult;
+}
 
+async function calcHF(networks, addresses, checkChange) {
   const mapHF = new Map();
-
   for (const address of addresses) {
     const mNet = new Map();
     for (const network of Object.values(networks)) {
@@ -70,37 +95,11 @@ export async function collectHealthFactors({
         network,
         checkChange,
       });
-      mNet.set(network.name, hfResult);
+      if (hfResult.healthfactor) {
+        mNet.set(network.name, hfResult);
+      }
     }
     mapHF.set(address, mNet);
   }
-
-  // 🟢 2. Сбор HF
-  //userId -> address -> network -> healthfactor
-  // 🟢 2. Сбор HF → Map(userId, Map(address, Map(network, hf)))
-
-  const finalResult = new Map();
-
-  for (const [uId, walletsMap] of resultMap.entries()) {
-    const userAddressMap = new Map();
-    let hfIsChanged = false;
-    for (const address of walletsMap.keys()) {
-      const networkMap = new Map();
-      for (const network of Object.values(networks)) {
-        const resultHF = mapHF.get(address)?.get(network.name);
-        if (resultHF && resultHF.isChanged) {
-          networkMap.set(network.name, resultHF.healthfactor);
-          hfIsChanged = true;
-        }
-      }
-      if (hfIsChanged) {
-        userAddressMap.set(address, networkMap);
-      }
-    }
-    if (hfIsChanged) {
-      finalResult.set(uId, userAddressMap);
-    }
-  }
-
-  return finalResult;
+  return mapHF;
 }
