@@ -1,5 +1,6 @@
-import { RETURNS } from '../constants/returns.js';
-import { mainKeyboard } from '../keyboards/main.keyboard.js';
+import { RETURNS } from "../constants/returns.js";
+import { mainKeyboard } from "../keyboards/main.keyboard.js";
+import { lanhuage } from "../locales/index.js";
 
 export async function handleReturn(ctx) {
   const target = ctx.session.returnTo;
@@ -9,7 +10,10 @@ export async function handleReturn(ctx) {
 
   switch (target) {
     case RETURNS.MAIN_MENU:
-      await ctx.reply('🏠 Главное меню', mainKeyboard());
+      await ctx.reply(
+        lanhuage(ctx.from.lanhuage_code, "main_menu"),
+        mainKeyboard(),
+      );
       break;
 
     default:

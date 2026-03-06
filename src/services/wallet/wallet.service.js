@@ -93,12 +93,12 @@ export async function getUserWallet(telegramId, address) {
   }
 
   // 2️⃣ cache miss → идем в БД
-  const walletFromDb = await db.wallets.findOneByAddress(
+  const walletExists = await db.wallets.walletExists(
     telegramId,
     normalizedAddress,
   );
 
-  if (!walletFromDb) return null;
+  if (!walletExists) return null;
 
   // 3️⃣ обновляем кеш (чтобы не было частичного кеша)
   if (!walletsMap || walletsMap.size === 0) {

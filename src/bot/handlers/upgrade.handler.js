@@ -1,9 +1,11 @@
 //src/bot/handlers/upgrade.handler.js
+import { lanhuage } from "../locales/index.js";
+
 export function upgradeHandler(bot) {
   bot.action("PRO_UPGRADE", async (ctx) => {
     await ctx.answerCbQuery();
     await ctx.reply(
-      "🚀 PRO подписка скоро будет доступна.\nОплата в ETH в разработке.",
+      "🚀 Upgrade to PRO\n\n" + lanhuage(ctx.from.language_code, "upgrade_pro"),
     );
   });
 }

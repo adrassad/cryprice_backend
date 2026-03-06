@@ -1,5 +1,9 @@
+import { lanhuage } from "../locales/index.js";
+
 // src/bot/constants/buttons.js
-export const BUTTONS = Object.freeze({
-  ADD_WALLET: '➕ Добавить кошелёк',
-  REMOVE_WALLET: '➖ Удалить кошелёк'
-});
+export function button(lan = "en") {
+  return Object.freeze({
+    ADD_WALLET: lanhuage(lan, "wallet_buttom_add"),
+    REMOVE_WALLET: lanhuage(lan, "wallet_buttom_del"),
+  });
+}

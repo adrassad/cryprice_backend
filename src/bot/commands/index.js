@@ -4,6 +4,7 @@ import { helpCommand } from "./help.command.js";
 import { statusCommand } from "./status.command.js";
 import { positionsCommand } from "./positions.command.js";
 import { healthFactorCommand } from "./healthfactor.command.js";
+import { supportCommand } from "./support.command.js";
 
 export function registerCommands(bot) {
   startCommand(bot);
@@ -11,4 +12,5 @@ export function registerCommands(bot) {
   statusCommand(bot);
   positionsCommand(bot);
   healthFactorCommand(bot);
+  supportCommand(bot);
 }

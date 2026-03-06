@@ -8,6 +8,7 @@ import { getWalletPositions } from "../../services/positions/position.service.js
 import { assertCanViewPositions } from "../../services/subscription/subscription.service.js";
 import { formatPositionsOverview } from "../utils/formatPositionsOverview.js";
 import pLimit from "p-limit";
+import { lanhuage } from "../locales/index.js";
 
 const CONCURRENCY = 5;
 
@@ -21,9 +22,7 @@ export function positionsCommand(bot) {
     const wallets = await getUserWallets(userId);
 
     if (!wallets.size) {
-      return ctx.reply(
-        "⚠️ У вас ещё нет кошельков. Добавьте через ➕ Add Wallet.",
-      );
+      return ctx.reply(lanhuage(ctx.from.language_code, command_wallet_no_add));
     }
 
     const buttons = [];
@@ -37,14 +36,8 @@ export function positionsCommand(bot) {
       );
     });
 
-    // for (const [value, key] of wallets) {
-    //   buttons.push(
-    //     Markup.button.callback(address, `wallet_positions:${wallet.id}`),
-    //   );
-    // }
-
     await ctx.reply(
-      "💼 Выберите кошелек для просмотра позиций:",
+      lanhuage(ctx.from.language_code, "command_show_positions"),
       Markup.inlineKeyboard(buttons, { columns: 1 }),
     );
   });
@@ -58,7 +51,7 @@ export function positionsCommand(bot) {
     const wallet = await getUserWallet(userId, address);
 
     if (!wallet) {
-      return ctx.reply("❌ Кошелек не найден");
+      return ctx.reply(lanhuage(ctx.from.language_code, "no_wallet"));
     }
 
     const networks = await getWalletPositions(userId, wallet.address);

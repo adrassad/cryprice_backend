@@ -1,7 +1,7 @@
 //src/bot/handlers/error.handler.js
 import { Markup } from "telegraf";
 import { ERRORS } from "../constants/errors.js";
-import { handleReturn } from "../utils/returnTo.js";
+import { lanhuage } from "../locales/index.js";
 
 export function registerGlobalErrorHandler(bot) {
   bot.catch(async (error, ctx) => {
@@ -14,21 +14,17 @@ async function handleBotError(ctx, error) {
 
   switch (code) {
     case ERRORS.INVALID_ADDRESS:
-      return ctx.reply(
-        "❌ Невалидный адрес.\n\nОтправьте корректный адрес или /cancel",
-      );
+      return ctx.reply(lanhuage(ctx.from.language_code, "novalid_address"));
 
     case ERRORS.WALLET_ALREADY_EXISTS:
-      return ctx.reply(
-        "⚠️ Этот кошелёк уже добавлен.\nОтправьте другой адрес или /cancel",
-      );
+      return ctx.reply(lanhuage(ctx.from.language_code, "wallet_you_have"));
 
     case ERRORS.FREE_LIMIT_REACHED:
     case ERRORS.FREE_PERIOD_EXPIRED:
     case ERRORS.PRO_SUBSCRIPTION_EXPIRED:
     case ERRORS.SUBSCRIPTION_REQUIRED:
       await ctx.reply(
-        "🔒 Требуется Pro подписка.",
+        lanhuage(ctx.from.language_code, "subscribe_need_pro"),
         Markup.inlineKeyboard([
           Markup.button.callback("⭐ Upgrade to Pro", "PRO_UPGRADE"),
         ]),
@@ -36,13 +32,13 @@ async function handleBotError(ctx, error) {
       return;
 
     case ERRORS.WALLET_NOT_FOUND:
-      return ctx.reply("❌ Кошелек не найден");
+      return ctx.reply(lanhuage(ctx.from.language_code, "no_wallet"));
 
     case ERRORS.USER_NOT_FOUND:
-      return ctx.reply("❌ Пользователь не найден");
+      return ctx.reply(lanhuage(ctx.from.language_code, "no_user"));
 
     default:
       console.error("UNHANDLED ERROR:", error);
-      return ctx.reply("⚠️ Произошла ошибка. Попробуйте позже.");
+      return ctx.reply(lanhuage(ctx.from.language_code, "error"));
   }
 }

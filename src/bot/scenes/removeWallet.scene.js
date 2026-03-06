@@ -2,6 +2,7 @@ import { Scenes, Markup } from "telegraf";
 import { SCENES } from "../constants/scenes.js";
 import { getUserWallets } from "../../services/wallet/wallet.service.js";
 import { assertCanViewPositions } from "../../services/subscription/subscription.service.js";
+import { lanhuage } from "../locales/index.js";
 
 export const removeWalletScene = new Scenes.BaseScene(SCENES.REMOVE_WALLET);
 
@@ -13,7 +14,7 @@ removeWalletScene.enter(async (ctx) => {
   const wallets = await getUserWallets(userId);
 
   if (!wallets.size) {
-    await ctx.reply("❌ У вас нет кошельков");
+    await ctx.reply(lanhuage(ctx.from.language_code, "command_wallet_no_add"));
     return ctx.scene.leave();
   }
 
@@ -26,7 +27,7 @@ removeWalletScene.enter(async (ctx) => {
   });
 
   await ctx.reply(
-    "💼 Выберите кошелек для удаления:",
+    lanhuage(ctx.from.language_code, "wallet_select_delete"),
     Markup.inlineKeyboard(buttons, { columns: 1 }),
   );
 });

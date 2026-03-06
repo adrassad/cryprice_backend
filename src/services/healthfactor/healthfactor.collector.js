@@ -9,6 +9,7 @@ import {
 } from "../wallet/wallet.service.js";
 import { calculateAndStoreHF } from "./healthfactor.core.js";
 import { extractUniqueAddresses } from "../wallet/wallet.utils.js";
+import { getUserStatus } from "../user/user.service.js";
 
 const CONCURRENCY = 5;
 
@@ -36,7 +37,6 @@ export async function collectHealthFactors({
   const finalResult = new Map();
 
   // 🟢 1. Определяем набор кошельков
-  let wallets;
   if (userId && address) {
     const wallet = await getUserWallet(userId, address);
 
@@ -61,6 +61,8 @@ export async function collectHealthFactors({
     const addresses = extractUniqueAddresses(resultMap);
     const mapHF = await calcHF(networks, addresses, checkChange);
     for (const [uId, walletsMap] of resultMap.entries()) {
+      const stat = await getUserStatus(uId);
+      if (!stat.isActive) continue;
       const userAddressMap = new Map();
       let hfIsChanged = false;
       for (const address of walletsMap.keys()) {

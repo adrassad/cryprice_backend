@@ -4,6 +4,7 @@ import { getUserWallets } from "../../services/wallet/wallet.service.js";
 import { formatHealthFactorOverview } from "../utils/hfFormatter.js";
 import { collectHealthFactors } from "../../services/healthfactor/healthfactor.collector.js";
 import { assertCanViewPositions } from "../../services/subscription/subscription.service.js";
+import { lanhuage } from "../locales/index.js";
 
 export function healthFactorCommand(bot) {
   bot.command("healthfactor", async (ctx) => {
@@ -14,9 +15,7 @@ export function healthFactorCommand(bot) {
     const wallets = await getUserWallets(userId);
 
     if (!wallets.size) {
-      return ctx.reply(
-        "⚠️ У вас ещё нет кошельков. Добавьте через ➕ Add Wallet.",
-      );
+      return ctx.reply(lanhuage(ctx.from.language_code, command_wallet_no_add));
     }
 
     const buttons = [];
@@ -28,7 +27,7 @@ export function healthFactorCommand(bot) {
     }
 
     await ctx.reply(
-      "💼 Выберите кошелек для получения healthfactor на Aave:",
+      lanhuage(ctx.from.language_code, "command_wallet_select"),
       Markup.inlineKeyboard(buttons, { columns: 1 }),
     );
   });
@@ -48,7 +47,7 @@ export function healthFactorCommand(bot) {
     const walletMap = resultMap.get(userId);
 
     if (!walletMap) {
-      return ctx.reply("❌ Кошелек не найден");
+      return ctx.reply(lanhuage(ctx.from.language_code, "no_wallet"));
     }
 
     const message = formatHealthFactorOverview(walletMap);
