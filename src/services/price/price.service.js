@@ -6,10 +6,11 @@ import { getEnabledNetworks } from "../network/network.service.js";
 import { getPrices } from "../../blockchain/index.js";
 
 export async function syncPrices() {
+  const alertPrice = new Map();
   const networks = await getEnabledNetworks();
   for (const network of Object.values(networks)) {
     console.log(`Price 🔗${network.name} `, network.id);
-    await loadPricesToCache(network.id);
+    const lastPrices = await loadLastPricesToCacheNyNetwork(network.id);
     const assets = await getAddressAssetsByNetwork(network.id);
     const prices = await getPrices(network.name, "aave", Object.values(assets));
     for (const price of Object.values(prices)) {
@@ -21,20 +22,44 @@ export async function syncPrices() {
         );
         continue;
       }
+      const change = diffPercent(lastPrices[price.address], price.price);
+      if (change > 5) {
+        let priceAddress = alertPrice.get(network);
+        if (!priceAddress) {
+          priceAddress = new Map();
+        }
+        const change =
+          ((price.price - lastPrices[price.address].price_usd) /
+            lastPrices[price.address].price_usd) *
+          100;
+        priceAddress.set(price.address, {
+          asset,
+          lastPrice: lastPrices[price.address],
+          newPrice: price.price,
+          change,
+        });
+        alertPrice.set(network, priceAddress);
+      }
       await savePriceIfChanged(network, asset, price.price);
     }
-    await loadPricesToCache(network.id);
   }
+  return alertPrice;
+}
+
+function diffPercent(oldPrice, newPrice) {
+  if (!oldPrice || oldPrice.price_usd === 0) return 0;
+
+  return Math.abs((newPrice - oldPrice.price_usd) / oldPrice.price_usd) * 100;
 }
 
 export async function loadLastPricesToCache() {
   const networks = Object.values(await getEnabledNetworks());
   for (const network of networks) {
-    await loadPricesToCache(network.id);
+    await loadLastPricesToCacheNyNetwork(network.id);
   }
 }
 
-export async function loadPricesToCache(network_id) {
+export async function loadLastPricesToCacheNyNetwork(network_id) {
   if (!network_id) return;
   const pricesDb = await db.prices.getLastPricesByNetwork(network_id);
   const prices = {};
@@ -50,6 +75,7 @@ export async function loadPricesToCache(network_id) {
     `✅ Cached price for network ${network_id}:`,
     Object.values(prices).length,
   );
+  return prices;
 }
 /**
  * Цена 1 токена в USD по адресу

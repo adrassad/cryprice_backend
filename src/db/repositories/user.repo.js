@@ -32,4 +32,15 @@ export class UserRepository extends BaseRepository {
 
     return super.update(id, fields, allowedFields);
   }
+
+  async getAllPro() {
+    const res = await this.db.query(
+      `SELECT *
+       FROM users
+       WHERE subscription_level ='pro'
+       `,
+    );
+
+    return res.rows;
+  }
 }

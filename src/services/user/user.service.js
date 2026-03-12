@@ -32,6 +32,10 @@ export async function isPro(telegramId) {
   return new Date(user.subscription_end) > new Date();
 }
 
+export async function getAllProUsers() {
+  return await db.users.getAllPro();
+}
+
 /**
  * Статус пользователя (для /status)
  */

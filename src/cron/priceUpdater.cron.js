@@ -1,6 +1,7 @@
 //src/cron/priceUpdater.cron.js
 import cron from "node-cron";
 import { syncPrices } from "../services/price/price.service.js";
+import { processPriceAlerts } from "../services/alerts/priceAlert.service.js";
 
 let isRunning = false;
 
@@ -12,7 +13,10 @@ export async function startPriceSyncCron() {
   isRunning = true;
   console.log("⏱ Updating prices...", new Date().toISOString());
   try {
-    await syncPrices();
+    const alerts = await syncPrices();
+    if (alerts.size > 0) {
+      await processPriceAlerts(alerts);
+    }
     console.log(
       "✅ Price sync completed successfully",
       new Date().toISOString(),
