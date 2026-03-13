@@ -10,14 +10,19 @@ export function tokenPriceHandler(bot) {
 
     const parts = text.split(/\s+/);
 
-    const symbol = parts[0].toUpperCase();
+    let symbol = parts[0].toUpperCase();
     const amount = parts[1] ? Number(parts[1]) : 1;
 
     if (isNaN(amount)) return;
 
     try {
-      const netAsset = await getAssetBySymbol(symbol);
+      let netAsset = await getAssetBySymbol(symbol);
 
+      if (netAsset.size === 0) {
+        symbol = "W" + symbol;
+      }
+
+      netAsset = await getAssetBySymbol(symbol);
       if (netAsset.size === 0) {
         await ctx.reply(`🪙 Токен <b>${symbol}</b> не найден`, {
           parse_mode: "HTML",
