@@ -12,6 +12,7 @@ notifications** when risk conditions are met.
 
 ## 📑 Table of Contents
 
+- [Overview](#-overview)
 - [Features](#-features)
 - [System Architecture](#-system-architecture)
 - [Project Structure](#-project-structure)
@@ -19,10 +20,10 @@ notifications** when risk conditions are met.
 - [Notifications](#-notifications)
 - [Internationalization](#-internationalization)
 - [Public API](#-public-api)
-- [Background Workers](#-background-workers)
+- [Cron Jobs](#-cron-jobs)
 - [Storage](#-storage)
 - [Security](#-security)
-- [Scalability](#-scalability)
+- [Limitations](#-limitations)
 - [License](#-license)
 
 ---
@@ -35,105 +36,220 @@ It combines:
 
 - Telegram bot (user interaction)
 - REST API (public endpoints)
+- Service layer (business logic)
 - Blockchain adapter (AAVE integration)
-- Background workers (data updates)
-- Redis cache (fast reads)
+- Redis cache
+- PostgreSQL storage
+- Cron jobs for background processing
 
-The system is designed for **continuous monitoring**, not transaction execution.
+The system is **read-only** and does not execute transactions.
 
 ---
 
 ## 🚀 Features
 
 - Monitor **AAVE lending positions**
-- Track **Health Factor** and liquidation risk
+- Track **Health Factor** (from AAVE account data)
 - Detect **liquidation risk**
-- **Multi-network support** (Ethereum, Arbitrum, Avalanche)
-- Real-time **token price updates**
-- **Price change alerts (\>5%)**
-- **Quick asset lookup via ticker input (e.g. BTC, ETH)**
-- **Telegram notifications**
-- **PostgreSQL** persistent storage
-- **Redis** caching layer
-- **Background workers**
-- **Localization (EN / RU)**
+- Track **token prices**
+- **Price change alerts (>5%)**
+- **Quick asset lookup via ticker input (BTC, ETH)**
+- Telegram notifications
 - Public REST API:
   - `/prices`
   - `/assets`
   - `/networks`
+- Redis caching
+- PostgreSQL persistence
 
 ---
 
-## 🧠 System Architecture
+## 🏗 System Architecture
 
-The architecture is designed for scalability and real-time monitoring of
-DeFi positions across multiple networks.
+The application starts from `src/index.js`, initializes core services, and runs:
+
+- Telegram bot
+- REST API
+- Cron jobs
+
+### Runtime structure
+
+- **Telegram bot** handles user interaction, wallet management, position views, Health Factor checks, and ticker-based price lookup.
+- **REST API** exposes only public read-only endpoints:
+  - `GET /health`
+  - `GET /assets`
+  - `GET /price/:ticker`
+  - `GET /networks`
+- **Cron jobs** periodically:
+  - sync assets
+  - sync prices
+  - sync Health Factor
+  - send price and HF alerts
+
+### Service boundaries
+
+- **API layer** uses:
+
+  - `Asset Service`
+  - `Price Service`
+  - `Network Service`
+
+- **Bot layer** uses:
+
+  - `Wallet Service`
+  - `Subscription Service`
+  - `Positions Service`
+  - `HealthFactor Collector`
+  - `Asset Service`
+  - `Price Service`
+
+- **Cron layer** uses:
+  - `Asset Service`
+  - `Price Service`
+  - `HealthFactor Service`
+  - `Price Alert Service`
+
+### Blockchain integration
+
+Blockchain access is centralized in `src/blockchain/index.js`, which resolves protocol adapters, RPC providers, ABI registry, and AAVE protocol integration.
+
+### Data layer
+
+- **PostgreSQL** stores persistent application data
+- **Redis** is used through cache modules for fast reads and temporary cached state
 
 ```mermaid
 flowchart TB
 
 subgraph USERS["Users"]
-U1["Telegram User"]
-U2["API Client"]
+  U1["Telegram User"]
+  U2["API Client"]
 end
 
-subgraph ENTRY["Entry Layer"]
-TG["Telegram Bot"]
-API["REST API"]
+subgraph APP["Application Runtime"]
+  INDEX["src/index.js"]
+  BOOT["app/bootstrap.js"]
+  RUN["app/runtime.js"]
 end
 
-subgraph SERVICES["Services Layer"]
-US["User Service"]
-WS["Wallet Service"]
-PS["Price Service"]
-AS["Asset Service"]
-POS["Positions Service"]
-HF["HealthFactor Service"]
-NS["Network Service"]
-SUB["Subscription Service"]
+subgraph ENTRY["Entry Points"]
+  TG["Telegram Bot"]
+  API["REST API"]
+  CRON["Cron Jobs"]
 end
 
-subgraph BLOCKCHAIN["Blockchain Layer"]
-ADAPTER["AAVE Adapter"]
-RPC["RPC Providers"]
-POOL["AAVE Pool / getUserAccountData"]
+subgraph BOT["Bot Layer"]
+  CMD["Commands / Handlers / Scenes"]
+  NOTIFY["NotificationService"]
 end
 
-subgraph DATA["Data Layer"]
-PG["PostgreSQL"]
-RD["Redis"]
+subgraph API_LAYER["API Layer"]
+  HEALTH_R["/health"]
+  ASSETS_R["/assets"]
+  PRICE_R["/price/:ticker"]
+  NETWORKS_R["/networks"]
+  RL["Rate Limit Middleware"]
+end
+
+subgraph SERVICES["Services"]
+  AS["Asset Service"]
+  PS["Price Service"]
+  NS["Network Service"]
+  WS["Wallet Service"]
+  US["User Service"]
+  POS["Positions Service"]
+  HF["HealthFactor Service"]
+  HFC["HealthFactor Collector/Core"]
+  SUB["Subscription Service"]
+  ALERT["Price Alert Service"]
+  BABI["Bootstrap ABI Service"]
+  BNET["Bootstrap Networks Service"]
+  BUSR["Bootstrap Users Service"]
+  BAS["Bootstrap Assets Service"]
+  BPR["Bootstrap Prices Service"]
+  BWAL["Bootstrap Wallets Service"]
+end
+
+subgraph BC["Blockchain Layer"]
+  BCI["blockchain/index.js"]
+  ADP["Adapters"]
+  NETREG["Networks Registry / RPC Providers"]
+  ABI["ABI Registry"]
+  AAVE["AAVE protocol integration"]
+end
+
+subgraph DATA["Data & Cache"]
+  PG["PostgreSQL"]
+  REDIS["Redis"]
+  CACHE["cache/*"]
 end
 
 U1 --> TG
 U2 --> API
 
-TG --> WS
-TG --> POS
-TG --> HF
+INDEX --> BOOT
+INDEX --> RUN
 
-API --> US
-API --> WS
-API --> PS
-API --> AS
-API --> NS
-API --> POS
-API --> HF
-API --> SUB
+BOOT --> BABI
+BOOT --> BNET
+BOOT --> BUSR
+BOOT --> BAS
+BOOT --> BPR
+BOOT --> BWAL
 
-POS --> ADAPTER
-HF --> ADAPTER
-ADAPTER --> RPC
-RPC --> POOL
+RUN --> TG
+RUN --> API
+RUN --> CRON
+
+TG --> CMD
+CMD --> WS
+CMD --> SUB
+CMD --> POS
+CMD --> HFC
+CMD --> AS
+CMD --> PS
+HF --> NOTIFY
+ALERT --> NOTIFY
+
+API --> RL
+RL --> HEALTH_R
+RL --> ASSETS_R
+RL --> PRICE_R
+RL --> NETWORKS_R
+
+ASSETS_R --> AS
+PRICE_R --> AS
+PRICE_R --> PS
+PRICE_R --> NS
+NETWORKS_R --> NS
+
+CRON --> AS
+CRON --> PS
+CRON --> HF
+CRON --> ALERT
+
+POS --> BCI
+HFC --> BCI
+AS --> BCI
+PS --> BCI
+
+BCI --> ADP
+BCI --> NETREG
+BCI --> ABI
+ADP --> AAVE
 
 US --> PG
 WS --> PG
 AS --> PG
+PS --> PG
 NS --> PG
-SUB --> PG
 
-PS --> RD
-AS --> RD
-HF --> RD
+US --> CACHE
+WS --> CACHE
+AS --> CACHE
+PS --> CACHE
+NS --> CACHE
+CACHE --> REDIS
 ```
 
 ---
@@ -145,6 +261,7 @@ src
 ├── bot
 ├── services
 ├── blockchain
+├── cron
 └── database
 
 ---
@@ -186,9 +303,9 @@ src
 
 ### HealthFactor Service
 
-- Compute Health Factor
-- Detect liquidation risk
-- Normalize across networks
+- Retrieves account risk data from AAVE (getUserAccountData)
+- Tracks Health Factor
+- Detects liquidation risk
 
 ### Subscription Service
 
@@ -200,7 +317,7 @@ src
 
 ## 🔔 Notifications
 
-- Health Factor alerts
+- Health Factor alerts (based on AAVE account data)
 - Price change alerts (\>5%)
 
 ---
@@ -219,26 +336,34 @@ Language is auto-detected from Telegram.
 ### Health
 
 GET /health
+Returns service status
 
 ### Assets
 
 GET /assets
+Returns supported tokens
 
 ### Prices
 
-GET /prices
+GET /price/:ticker
+Returns token price
 
 ### Networks
 
 GET /networks
+Returns supported networks
 
 ---
 
-## ⚙️ Background Workers
+## ⚙️ Cron Jobs
 
-- Price Worker
-- Assets Worker
-- Health Factor Worker
+Located in src/cron:
+
+assetsUpdater.cron.js — updates asset metadata
+
+priceUpdater.cron.js — updates prices and triggers price alerts
+
+HFUpdater.cron.js — updates Health Factor data
 
 ---
 
@@ -274,11 +399,12 @@ GET /networks
 
 ---
 
-## 📈 Scalability
+⚠️ Limitations
 
-- Stateless API
-- Horizontal scaling via workers
-- Redis caching layer
+- Polling-based updates (cron jobs, no event system)
+- No queue system (BullMQ / RabbitMQ)
+- Limited RPC failover handling
+- Data freshness depends on RPC providers
 
 ---
 
