@@ -1,5 +1,24 @@
 # AAVE Health Factor Bot
 
+## 📑 Table of Contents
+
+-   [Overview](#overview)
+-   [Features](#features)
+-   [System Architecture](#system-architecture)
+-   [Core Services](#core-services)
+-   [Notifications](#notifications)
+-   [Internationalization](#internationalization)
+-   [Public API](#public-api)
+-   [Background Workers](#background-workers)
+-   [Storage](#storage)
+-   [Security](#security)
+-   [Scalability](#scalability)
+-   [License](#license)
+
+------------------------------------------------------------------------
+
+## 📌 Overview
+
 A **Telegram bot and backend service** for monitoring **AAVE lending
 positions and Health Factor risk** across multiple blockchain networks.
 
@@ -9,7 +28,7 @@ notifications** when a Health Factor approaches critical thresholds.
 
 ------------------------------------------------------------------------
 
-# 🚀 Features
+## 🚀 Features
 
 -   Monitor **AAVE lending positions**
 -   Track **Health Factor** and liquidation risk
@@ -26,168 +45,207 @@ notifications** when a Health Factor approaches critical thresholds.
 
 ------------------------------------------------------------------------
 
-# 🧠 System Architecture
+## 🧠 System Architecture
 
-(See original diagram)
+The architecture is designed for scalability and real-time monitoring of
+DeFi positions across multiple networks.
+
+``` mermaid
+flowchart TB
+
+subgraph USERS["Users"]
+U1["Telegram User"]
+U2["External API Client"]
+end
+
+subgraph ENTRY["Entry Layer"]
+TG["Telegram Bot"]
+API["REST API"]
+end
+
+subgraph BOT["Bot Layer"]
+CMD["Command Handlers"]
+SCENES["Scenes / User Flows"]
+I18N["Localization"]
+NOTIFY["Notification Service"]
+end
+
+subgraph DOMAIN["Domain Services"]
+US["User Service"]
+WS["Wallet Service"]
+AS["Asset Service"]
+NS["Network Service"]
+PS["Price Service"]
+POS["Positions Service"]
+HF["HealthFactor Service"]
+SUB["Subscription Service"]
+end
+
+subgraph BC["Blockchain Integration"]
+ADAPTER["AAVE Adapter"]
+ABI["ABI Registry"]
+RPC["RPC Providers"]
+CONTRACT["Smart Contract Calls"]
+end
+
+subgraph DATA["Data Layer"]
+POSTGRES["PostgreSQL"]
+REDIS["Redis"]
+end
+
+subgraph WORKERS["Background Workers"]
+CRON1["Price Worker"]
+CRON2["Assets Worker"]
+CRON3["HealthFactor Worker"]
+end
+
+U1 --> TG
+U2 --> API
+
+TG --> CMD
+CMD --> SCENES
+CMD --> I18N
+CMD --> NOTIFY
+
+CMD --> WS
+CMD --> POS
+CMD --> HF
+
+API --> US
+API --> WS
+API --> PS
+API --> AS
+API --> NS
+API --> POS
+API --> HF
+API --> SUB
+
+POS --> ADAPTER
+HF --> ADAPTER
+
+ADAPTER --> ABI
+ADAPTER --> RPC
+RPC --> CONTRACT
+
+CONTRACT --> POSTGRES
+
+US --> POSTGRES
+WS --> POSTGRES
+AS --> POSTGRES
+NS --> POSTGRES
+PS --> POSTGRES
+SUB --> POSTGRES
+
+PS --> REDIS
+AS --> REDIS
+HF --> REDIS
+
+CRON1 --> PS
+CRON2 --> AS
+CRON3 --> HF
+
+REDIS --> API
+POSTGRES --> API
+```
 
 ------------------------------------------------------------------------
 
-# 🧩 Core Services
+## 🧩 Core Services
 
-## Asset Service
+### Asset Service
 
-Manages **asset metadata and configuration**.
+-   Manage supported assets
+-   Store metadata
+-   Handle collateral parameters
 
-Responsibilities:
+### Price Service
 
--   Maintain supported asset list
--   Store token metadata
--   Manage decimals and collateral parameters
-
-------------------------------------------------------------------------
-
-## Price Service
-
-Handles **token price updates**.
-
-Responsibilities:
-
--   Fetch market prices
--   Normalize price data
--   Cache prices in Redis
+-   Fetch and normalize prices
+-   Cache in Redis
 -   Detect price changes (\>5%)
 
-------------------------------------------------------------------------
+### Network Service
 
-## Network Service
+-   Manage blockchain networks
+-   Store RPC endpoints and chain IDs
 
-Manages **supported blockchain networks**.
+### Wallet Service
 
-Responsibilities:
+-   Add/remove wallets
+-   Validate format
+-   Link to users
 
--   Maintain supported chains
--   Provide RPC configuration
--   Store chain IDs
+### User Service
 
-------------------------------------------------------------------------
+-   Manage users
+-   Store preferences and language
 
-## Wallet Service
+### Positions Service
 
-Handles **wallet management**.
+-   Fetch AAVE reserves
+-   Calculate collateral, debt, borrow capacity
 
-Responsibilities:
+### HealthFactor Service
 
--   Add/remove wallet
--   Validate wallet format
--   Link wallet to user
-
-------------------------------------------------------------------------
-
-## User Service
-
-Manages **user accounts and preferences**.
-
-Responsibilities:
-
--   Create user
--   Update preferences
--   Store language settings
-
-------------------------------------------------------------------------
-
-## Positions Service
-
-Fetches **user lending positions from AAVE**.
-
-Responsibilities:
-
--   Fetch reserve data from AAVE
--   Calculate:
-    -   total collateral
-    -   total debt
-    -   available borrow
-
-------------------------------------------------------------------------
-
-## HealthFactor Service
-
-Calculates **liquidation risk**.
-
-Responsibilities:
-
--   Calculate Health Factor based on:
-    -   collateral value
-    -   borrow value
-    -   liquidation thresholds
+-   Compute Health Factor
+-   Detect liquidation risk
 -   Normalize across networks
--   Detect critical thresholds
 
-------------------------------------------------------------------------
+### Subscription Service
 
-## Subscription Service
-
-Manages **user subscription plans**.
-
-Responsibilities:
-
--   Free / Pro plans
--   Wallet limits
--   Notification limits
+-   Manage plans (Free / Pro)
+-   Wallet & notification limits
 -   Feature gating
 
 ------------------------------------------------------------------------
 
-# 🔔 Notifications
-
-The system supports:
+## 🔔 Notifications
 
 -   Health Factor alerts
 -   Price change alerts (\>5%)
 
 ------------------------------------------------------------------------
 
-# 🌍 Internationalization
-
-Supported languages:
+## 🌍 Internationalization
 
 -   English
 -   Russian
 
-Language is detected from Telegram settings.
+Language is auto-detected from Telegram.
 
 ------------------------------------------------------------------------
 
-# 🔌 Public API
+## 🔌 Public API
 
-## Health Check
+### Health
 
 GET /health
 
-## Assets
+### Assets
 
 GET /assets
 
-## Prices
+### Prices
 
 GET /prices
 
-## Networks
+### Networks
 
 GET /networks
 
 ------------------------------------------------------------------------
 
-# ⚙️ Background Workers
+## ⚙️ Background Workers
 
--   Price Worker (updates prices)
--   Assets Worker (updates metadata)
--   Health Factor Worker (recalculates risk)
+-   Price Worker
+-   Assets Worker
+-   Health Factor Worker
 
 ------------------------------------------------------------------------
 
-# 🗄 Storage
+## 🗄 Storage
 
-## PostgreSQL
+### PostgreSQL
 
 -   users
 -   wallets
@@ -195,30 +253,30 @@ GET /networks
 -   positions
 -   subscriptions
 
-## Redis
+### Redis
 
 -   price caching
 -   fast reads
 
 ------------------------------------------------------------------------
 
-# 🔐 Security
+## 🔐 Security
 
 -   No private keys stored
 -   Read-only wallet tracking
 -   Input validation
--   Sensitive data not exposed via API
+-   Sensitive data not exposed
 
 ------------------------------------------------------------------------
 
-# 📈 Scalability
+## 📈 Scalability
 
 -   Stateless API
--   Horizontal scaling with workers
--   Redis for high-performance reads
+-   Horizontal scaling via workers
+-   Redis caching layer
 
 ------------------------------------------------------------------------
 
-# 📜 License
+## 📜 License
 
 MIT
