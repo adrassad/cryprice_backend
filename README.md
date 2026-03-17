@@ -1,5 +1,15 @@
 # AAVE Health Factor Bot
 
+A **Telegram bot and backend service** for monitoring **AAVE lending
+positions and Health Factor risk** across EVM-compatible blockchain
+networks.
+
+The system provides **read-only wallet tracking**, calculates **Health
+Factor**, monitors **price changes**, and sends **Telegram
+notifications** when risk conditions are met.
+
+---
+
 ## 📑 Table of Contents
 
 - [Features](#-features)
@@ -19,12 +29,15 @@
 
 ## 📌 Overview
 
-A **Telegram bot and backend service** for monitoring **AAVE lending
-positions and Health Factor risk** across multiple blockchain networks.
+This project is a **modular layered backend** designed for monitoring
+DeFi lending positions in AAVE.
 
-The system tracks user wallets, analyzes collateral and borrow
-positions, calculates liquidation risk, and sends **Telegram
-notifications** when a Health Factor approaches critical thresholds.
+It integrates:
+
+- Telegram bot (user interaction)
+- REST API (external access)
+- Blockchain adapters (data fetching)
+- Background workers (data updates)
 
 ---
 
@@ -32,7 +45,8 @@ notifications** when a Health Factor approaches critical thresholds.
 
 - Monitor **AAVE lending positions**
 - Track **Health Factor** and liquidation risk
-- **Multi-network support** (Ethereum, Polygon, Arbitrum, Optimism)
+- Detect **liquidation risk**
+- **Multi-network support** (Ethereum, Arbitrum, Avalanche)
 - Real-time **token price updates**
 - **Price change alerts (\>5%)**
 - **Quick asset lookup via ticker input (e.g. BTC, ETH)**
@@ -249,13 +263,19 @@ GET /networks
 
 - users
 - wallets
+- healthfactors
 - assets
-- positions
-- subscriptions
+- prices
+- networks
 
 ### Redis
 
+- ABI caching
+- assets caching
 - price caching
+- network caching
+- user caching
+- wallet caching
 - fast reads
 
 ---

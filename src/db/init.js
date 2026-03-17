@@ -151,27 +151,6 @@ export async function initDb() {
     ON healthfactors(address, protocol, network_id, timestamp);
   `);
 
-  //
-  // MONITORS
-  //
-  await dbClient.query(`
-    CREATE TABLE IF NOT EXISTS monitors (
-      id SERIAL PRIMARY KEY,
-
-      user_id BIGINT
-        REFERENCES users(telegram_id)
-        ON DELETE CASCADE,
-
-      wallet_address TEXT NOT NULL,
-
-      threshold NUMERIC(38,18),
-
-      last_health_factor NUMERIC(38,18),
-
-      last_alert_at TIMESTAMPTZ
-    );
-  `);
-
   await dbClient.query(`
     CREATE INDEX IF NOT EXISTS idx_monitors_user
     ON monitors(user_id);
@@ -199,11 +178,6 @@ export async function initDb() {
       CONSTRAINT payments_status_check
         CHECK (status IN ('pending','confirmed','expired','failed'))
     );
-  `);
-
-  await dbClient.query(`
-    CREATE INDEX IF NOT EXISTS idx_payments_user
-    ON payments_pending(user_id);
   `);
 
   console.log("✅ DB initialized");
