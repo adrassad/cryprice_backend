@@ -1,6 +1,6 @@
 // src/cron/HFUpdater.cron.js
 import cron from "node-cron";
-import { syncHF } from "../services/healthfactor/healthfactor.service.js";
+import { syncHF } from "../integrations/private/hf-monitor.js";
 
 let isRunning = false;
 

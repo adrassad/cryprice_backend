@@ -1,6 +1,6 @@
 // src/services/wallet.service.js
 import { ethers } from "ethers";
-import { assertCanAddWallet } from "../subscription/subscription.service.js";
+import { assertCanAddWallet } from "../../integrations/private/access-policy.js";
 import { db } from "../../db/index.js";
 import {
   setAllWalletsToCache,

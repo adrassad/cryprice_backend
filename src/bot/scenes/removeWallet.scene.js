@@ -1,7 +1,7 @@
 import { Scenes, Markup } from "telegraf";
 import { SCENES } from "../constants/scenes.js";
 import { getUserWallets } from "../../services/wallet/wallet.service.js";
-import { assertCanViewPositions } from "../../services/subscription/subscription.service.js";
+import { assertCanViewPositions } from "../../integrations/private/access-policy.js";
 import { lanhuage } from "../locales/index.js";
 
 export const removeWalletScene = new Scenes.BaseScene(SCENES.REMOVE_WALLET);

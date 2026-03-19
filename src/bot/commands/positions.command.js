@@ -5,7 +5,7 @@ import {
   getUserWallet,
 } from "../../services/wallet/wallet.service.js";
 import { getWalletPositions } from "../../services/positions/position.service.js";
-import { assertCanViewPositions } from "../../services/subscription/subscription.service.js";
+import { assertCanViewPositions } from "../../integrations/private/access-policy.js";
 import { formatPositionsOverview } from "../utils/formatPositionsOverview.js";
 import pLimit from "p-limit";
 import { lanhuage } from "../locales/index.js";

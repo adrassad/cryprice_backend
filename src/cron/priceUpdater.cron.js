@@ -1,7 +1,7 @@
 //src/cron/priceUpdater.cron.js
 import cron from "node-cron";
 import { syncPrices } from "../services/price/price.service.js";
-import { processPriceAlerts } from "../services/alerts/priceAlert.service.js";
+import { processPriceAlerts } from "../integrations/private/alert-gateway.js";
 
 let isRunning = false;
 

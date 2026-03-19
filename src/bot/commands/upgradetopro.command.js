@@ -1,7 +1,7 @@
 // src/bot/commands/support.command.js
 import { lanhuage } from "../locales/index.js";
 import { getUserStatus } from "../../services/user/user.service.js";
-import { upgradeToPro } from "../../services/subscription/subscription.service.js";
+import { upgradeToPro } from "../../integrations/private/access-policy.js";
 
 const ADMIN_ID = Number(process.env.ADMIN_ID);
 

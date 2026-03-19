@@ -4,7 +4,7 @@ import { SCENES } from "../constants/scenes.js";
 import { button } from "../constants/buttons.js";
 import { addUserWallet } from "../../services/wallet/wallet.service.js";
 import { handleReturn } from "../utils/returnTo.js";
-import { assertCanViewPositions } from "../../services/subscription/subscription.service.js";
+import { assertCanViewPositions } from "../../integrations/private/access-policy.js";
 import { lanhuage } from "../locales/index.js";
 
 export const addWalletScene = new Scenes.BaseScene(SCENES.ADD_WALLET);

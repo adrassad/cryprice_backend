@@ -3,7 +3,7 @@ import { Markup } from "telegraf";
 import { getUserWallets } from "../../services/wallet/wallet.service.js";
 import { formatHealthFactorOverview } from "../utils/hfFormatter.js";
 import { collectHealthFactors } from "../../services/healthfactor/healthfactor.collector.js";
-import { assertCanViewPositions } from "../../services/subscription/subscription.service.js";
+import { assertCanViewPositions } from "../../integrations/private/access-policy.js";
 import { lanhuage } from "../locales/index.js";
 
 export function healthFactorCommand(bot) {
