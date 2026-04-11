@@ -23,22 +23,6 @@ export async function initDb() {
   `);
 
   await dbClient.query(`
-  CREATE TABLE IF NOT EXISTS users (
-    telegram_id BIGINT PRIMARY KEY,
-    username TEXT,
-    first_name TEXT,
-    last_name TEXT,
-    language TEXT,
-    subscription_level TEXT NOT NULL DEFAULT 'free',
-    subscription_end TIMESTAMPTZ,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    threshold_hf NUMERIC(10, 2) DEFAULT 1.2,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-  );
-`);
-
-  await dbClient.query(`
     CREATE OR REPLACE FUNCTION update_updated_at_column()
     RETURNS TRIGGER AS $$
     BEGIN
